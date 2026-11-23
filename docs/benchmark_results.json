@@ -1,0 +1,54 @@
+{
+  "trials": 60,
+  "seed": 42,
+  "faulted_trials": 48,
+  "clean_trials": 12,
+  "naive_slipped_failures": 36,
+  "naive_slip_rate_pct": 75.0,
+  "naive_catch_rate_pct": 25.0,
+  "mcp_guard_slipped_failures": 0,
+  "mcp_guard_false_alarms": 0,
+  "mcp_guard_catch_rate_pct": 100.0,
+  "per_fault": {
+    "timeout": {
+      "trials": 6,
+      "naive_slipped": 0,
+      "mcp_guard_caught": 6
+    },
+    "malformed_json": {
+      "trials": 6,
+      "naive_slipped": 6,
+      "mcp_guard_caught": 6
+    },
+    "empty_payload": {
+      "trials": 6,
+      "naive_slipped": 6,
+      "mcp_guard_caught": 6
+    },
+    "silent_error_200": {
+      "trials": 6,
+      "naive_slipped": 6,
+      "mcp_guard_caught": 6
+    },
+    "http_429_rate_limit": {
+      "trials": 6,
+      "naive_slipped": 0,
+      "mcp_guard_caught": 6
+    },
+    "schema_drift": {
+      "trials": 6,
+      "naive_slipped": 6,
+      "mcp_guard_caught": 6
+    },
+    "partial_failure": {
+      "trials": 6,
+      "naive_slipped": 6,
+      "mcp_guard_caught": 6
+    },
+    "truncated_response": {
+      "trials": 6,
+      "naive_slipped": 6,
+      "mcp_guard_caught": 6
+    }
+  }
+}

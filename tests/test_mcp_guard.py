@@ -77,3 +77,16 @@ def test_cli_audit_and_verify_reports(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert main(["verify", str(trace_file)]) == 2
+
+
+
+def test_empirical_benchmark_reports_measurable_detection_gap(tmp_path: Path) -> None:
+    out_json = tmp_path / "bench.json"
+    rc = main(["benchmark", "--trials", "60", "--seed", "42", "--json-out", str(out_json)])
+    assert rc == 0
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert data["trials"] == 60
+    assert data["faulted_trials"] == 48
+    assert data["naive_slipped_failures"] > 0
+    assert data["mcp_guard_slipped_failures"] == 0
+    assert data["mcp_guard_catch_rate_pct"] == 100.0

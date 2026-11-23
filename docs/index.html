@@ -80,7 +80,7 @@
   <div class="wrap">
     <span class="pill">Open-Core MIT · Zero Dependencies · Python 3.10+</span>
     <h1>Stop AI Agents From Lying About Failed MCP Tool Calls.</h1>
-    <p class="lead">Inject 8 deterministic MCP failure modes (silent HTTP 200 errors, truncated JSON, partial batch failures, 429 rate limits, schema drift) in CI and kill the 38% false-positive verifier wall.</p>
+    <p class="lead">Inject 8 deterministic MCP failure modes in CI. In our reproducible 60-trial benchmark (<code>seed=42</code>), naive HTTP-200 checks missed <b>75.0% (36/48)</b> of injected tool failures, while <code>mcp-guard</code> caught <b>100.0% (48/48)</b> with 0 false alarms.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit">Get Free CLI on GitHub →</a>
       <a class="btn btn-ghost" href="#comparison">Compare Alternatives</a>
@@ -89,11 +89,12 @@
 
     <pre><code>git clone https://github.com/thongtuehuu-cyber/mcp-guard-kit.git
 cd mcp-guard-kit && pip install -e .
+python -m mcp_guard benchmark --trials 60 --seed 42 --json
 python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></pre>
 
     <div class="calc">
       <h2 style="margin:0 0 6px;">Interactive Production Failure Cost Calculator</h2>
-      <p style="margin:0;color:var(--muted);font-size:14px;">Estimate how many silent agent hallucinations slip into production each month without evidence-backed MCP fault verification.</p>
+      <p style="margin:0;color:var(--muted);font-size:14px;">Measured benchmark baseline: naive HTTP-200 checks miss <b>75.0% (6 of 8 failure classes)</b> when MCP errors return status 200. Estimate monthly silent failures caught locally.</p>
       <div class="calc-grid">
         <div>
           <label>Daily MCP Tool Calls: <b id="lbl-calls">2,000</b></label>
@@ -155,7 +156,7 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       const calls = Number(c.value), rate = Number(r.value);
       document.getElementById('lbl-calls').textContent = calls.toLocaleString();
       document.getElementById('lbl-rate').textContent = rate.toFixed(1) + '%';
-      const caught = Math.round(calls * 30 * (rate / 100) * 0.38);
+      const caught = Math.round(calls * 30 * (rate / 100) * 0.75);
       document.getElementById('out-caught').textContent = caught.toLocaleString() + ' / mo';
     };
     c.oninput = upd; r.oninput = upd; upd();

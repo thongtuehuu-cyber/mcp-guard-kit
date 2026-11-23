@@ -6,7 +6,12 @@
 
 **Zero-dependency MCP tool fault-injection & anti-hallucination verifier for AI agents.**
 
-When an MCP tool fails silently (HTTP 200 with error body, truncated JSON, partial batch failure, schema drift, or 429 rate-limit), LLMs frequently hallucinate success ("Done! Saved all records") and naive verifiers suffer up to a **38% false-positive rate**.
+When an MCP tool fails silently (HTTP 200 with error body, truncated JSON, partial batch failure, schema drift, or malformed streams), LLMs and naive `status_code == 200` checks routinely assume success.
+
+### Reproducible Benchmark (`python -m mcp_guard benchmark --trials 60 --seed 42`)
+Across 60 deterministic trials (`48` faulted calls spanning all 8 fault categories + `12` clean baselines, saved in [`docs/benchmark_results.json`](docs/benchmark_results.json)):
+- **Naive HTTP-200 Verifier:** missed **`36 / 48` (`75.0%`)** of faulted MCP responses (6 of 8 fault categories return HTTP 200 / `ok=true`).
+- **`mcp-guard` Evidence Verifier:** caught **`48 / 48` (`100.0%`)** with **`0`** false alarms on clean payloads.
 
 `mcp-guard-kit` catches lying agents deterministically in CI — zero SaaS lock-in, zero external dependencies.
 

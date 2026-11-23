@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from .benchmark import run_empirical_benchmark
 from .runner import render_html_report, render_markdown_report, run_builtin_chaos_suite
 from .verifier import ToolTrace, evaluate_suite
 
@@ -31,7 +32,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_ver.add_argument("--html-out", type=Path, help="Write HTML report")
     p_ver.add_argument("--json", action="store_true", help="Print JSON summary")
 
+    p_bench = sub.add_parser("benchmark", help="Run reproducible Naive HTTP-200 vs MCP Guard empirical benchmark")
+    p_bench.add_argument("--trials", type=int, default=60, help="Total trials to evaluate (default: 60)")
+    p_bench.add_argument("--seed", type=int, default=42, help="Deterministic RNG seed (default: 42)")
+    p_bench.add_argument("--json-out", type=Path, help="Write benchmark JSON trace to path")
+    p_bench.add_argument("--json", action="store_true", help="Print JSON report to stdout")
+
     args = parser.parse_args(argv)
+    if args.cmd == "benchmark":
+        bench = run_empirical_benchmark(trials=args.trials, seed=args.seed)
+        payload = bench.to_dict()
+        if args.json_out:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        if args.json:
+            print(json.dumps(payload, indent=2))
+        else:
+            print(
+                f"Benchmark ({bench.trials} trials, {bench.faulted_trials} faulted, seed={bench.seed}):\n"
+                f"- Naive HTTP-200 Verifier slipped failures: {bench.naive_slipped_failures}/{bench.faulted_trials} ({bench.naive_slip_rate_pct}% missed)\n"
+                f"- MCP Guard Verifier caught failures: {bench.faulted_trials - bench.mcp_guard_slipped_failures}/{bench.faulted_trials} ({bench.mcp_guard_catch_rate_pct}% caught, {bench.mcp_guard_false_alarms} false alarms)"
+            )
+        return 0 if bench.mcp_guard_slipped_failures == 0 else 2
+
     if args.cmd == "audit":
         summary = run_builtin_chaos_suite(simulate_lying_agent=args.simulate_lying_agent)
     else:
