@@ -178,7 +178,11 @@ async function route(req, env, ctx) {
   if (req.method === "GET" && url.pathname === "/checkout") {
     if (!env.COMMERCE_DB || !env.HMAC_SECRET || !(env.PRO_FILES || env.PRO_FILES_KV || env.PRO_ZIP_PRIVATE_URL))
       return json({ error: "Checkout unavailable" }, 503);
-    return checkoutPage(Number(env.PRICE_MICROS ?? 3250000) / 1000000);
+    return checkoutPage(Number(env.PRICE_MICROS ?? 3250000) / 1000000, {
+      wallet: env.MERCHANT_WALLET,
+      sender: env.SENDER_EMAIL,
+      replyTo: env.REPLY_TO_EMAIL,
+    });
   }
   if (req.method === "GET" && url.pathname === "/download") {
     const sig = url.searchParams.get("sig");
