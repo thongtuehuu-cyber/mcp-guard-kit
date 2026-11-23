@@ -1,12 +1,30 @@
 name = "mcp-guard-solana-fulfillment"
 main = "worker.js"
-compatibility_date = "2026-11-01"
+compatibility_date = "2026-11-23"
+
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
 
 [vars]
 MERCHANT_WALLET = "GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF"
-SENDER_EMAIL = "thongtuehuu@gmail.com"
+SENDER_EMAIL = "orders@mail.staai.click"
+REPLY_TO_EMAIL = "thongtuehuu@gmail.com"
+PRICE_MICROS = 3250000
+PUBLIC_ORIGIN = "https://mcp-guard-solana-fulfillment.daochienthangkt.workers.dev"
+PRO_ZIP_KEY = "mcp-guard-kit-pro-v1.1.zip"
 
-# Bind KV namespace in Cloudflare dashboard before deploy:
-# [[kv_namespaces]]
-# binding = "ORDERS_KV"
-# id = "<your-kv-namespace-id>"
+[[d1_databases]]
+binding = "COMMERCE_DB"
+database_name = "mcp-guard-orders"
+database_id = "fe64f5cc-f168-490e-837c-df02613815a3"
+migrations_dir = "migrations"
+
+[[kv_namespaces]]
+binding = "PRO_FILES_KV"
+id = "e607e1b5c7694b7fbb0f4aeac8d57944"
+
+[triggers]
+crons = ["*/5 * * * *"]

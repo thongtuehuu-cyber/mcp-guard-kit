@@ -207,9 +207,16 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
 
       <div class="card" style="border-color:rgba(16,185,129,.45);">
         <h3>Pro Automation Pack v1.1 — $3.25 (One-Time)</h3>
-        <p>24 production scenarios (Stripe, GitHub, Postgres, Slack, Playwright), live <code>proxy-stdio</code> &amp; <code>proxy-http</code> JSON-RPC chaos proxies, pytest fixtures, SARIF 2.1 / JUnit / Executive HTML reports &amp; commercial license.</p>
+        <p>24 production scenarios (Stripe, GitHub, Postgres, Slack, Playwright), live <code>proxy-stdio</code> &amp; <code>proxy-http</code> JSON-RPC chaos proxies, reusable synthetic regression fixtures, release comparisons, SARIF / JUnit / HTML reports &amp; commercial license.</p>
         <div class="pay-box">
-          <div style="font-size:12px;font-weight:700;color:#6ee7b7;">Instant Checkout — 3.25 USDC (Solana Mainnet · 0% Fee)</div>
+          <!-- AUTO_CHECKOUT_SLOT_START -->
+          <div style="font-size:12px;font-weight:700;color:#6ee7b7;margin-bottom:8px;">24/7 Instant Auto-Checkout · 3.25 USDC (Solana Mainnet · 0% Fee)</div>
+          <div class="pay-actions" style="margin-bottom:10px;">
+            <a id="order-checkout" class="btn-sm btn-sol" href="https://mcp-guard-solana-fulfillment.daochienthangkt.workers.dev/checkout" target="_blank" rel="noopener noreferrer">Instant 24/7 Auto-Checkout — 3.25 USDC ↗</a>
+          </div>
+          <!-- AUTO_CHECKOUT_SLOT_END -->
+          <details id="manual-pay">
+          <summary>Manual wallet payment and private claim · 3.25 USDC</summary>
           <div class="qr-row">
             <img class="qr-img" src="./solana-pay-qr.svg" alt="Solana Pay 3.25 USDC QR Code" width="144" height="144" />
             <div style="flex:1;min-width:160px;">
@@ -226,13 +233,12 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
             <label for="tx-sig-in" style="font-size:11.5px;color:#cbd5e1;font-weight:600;">Already paid? Paste Solana Tx Signature to claim Pro v1.1 ZIP:</label>
             <input id="tx-sig-in" class="tx-input" type="text" placeholder="Paste base58 Solana Tx signature..." />
             <div class="pay-actions">
-              <a id="btn-claim-issue" class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=Pro+License+Claim+v1.1&body=Solana+Tx+Signature%3A+" target="_blank" rel="noopener noreferrer">Open Pre-Filled Claim Issue ↗</a>
+              <a id="btn-claim-issue" class="btn-sm btn-copy" href="mailto:thongtuehuu@gmail.com?subject=MCP%20Guard%20Pro%20purchase" target="_blank" rel="noopener noreferrer">Email a private purchase claim ↗</a>
               <a id="btn-solscan-tx" class="btn-sm btn-copy btn-disabled" href="#pro-pack" target="_blank" rel="noopener noreferrer">View on Solscan ↗</a>
             </div>
-            <div id="tx-sig-status" class="muted-sm">Paste a valid base58 Tx signature (32–120 chars) for 1-click claim &amp; Solscan verification.</div>
+            <div id="tx-sig-status" class="muted-sm">Paste a valid base58 Tx signature (32–120 chars) for a private purchase claim.</div>
           </div>
-          <!-- AUTO_CHECKOUT_SLOT_START -->
-          <!-- AUTO_CHECKOUT_SLOT_END -->
+          </details>
         </div>
       </div>
 
@@ -280,10 +286,34 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       }
     };
     const CODE_DATA = {
-      stdio: 'mcp-guard-pro proxy-stdio \\\n  --scenario stripe-silent-decline \\\n  --trace out/stdio-trace.jsonl \\\n  -- python my_mcp_server.py',
-      http: 'mcp-guard-pro proxy-http \\\n  --listen 127.0.0.1:8088 \\\n  --upstream http://127.0.0.1:9000 \\\n  --scenario github-429-retry-after \\\n  --trace out/http-trace.jsonl',
-      pytest: 'def test_agent_handles_silent_decline(mcp_chaos, mcp_assert_honest):\n    trace = mcp_chaos.run("stripe-silent-decline", agent_claim="Paid!")\n    verdict = mcp_assert_honest(trace)\n    assert not verdict.hallucination_slipped',
-      sarif: 'mcp-guard-pro audit \\\n  --suite production-24 \\\n  --sarif-out results.sarif \\\n  --junit-out junit.xml \\\n  --html-out report.html'
+      stdio: [
+        'mcp-guard-pro proxy-stdio',
+        '  --scenario stripe_card_declined_200',
+        '  --trace-out stdio-trace.jsonl',
+        '  -- python my_mcp_server.py'
+      ].join(' \\\n'),
+      http: [
+        'mcp-guard-pro proxy-http',
+        '  --host 127.0.0.1 --port 8088',
+        '  --upstream http://127.0.0.1:9000',
+        '  --scenario github_secondary_rate_limit',
+        '  --trace-out http-trace.jsonl'
+      ].join(' \\\n'),
+      pytest: [
+        'def test_decline(mcp_chaos, mcp_assert_honest):',
+        '    fault = "stripe_card_declined_200"',
+        '    mcp_assert_honest(',
+        '        case_id="declined", tool_name="payment", fault_id=fault,',
+        '        tool_response=mcp_chaos.inject(fault),',
+        '        agent_claim="The payment failed.",',
+        '    )'
+      ].join('\n'),
+      sarif: [
+        'mcp-guard-pro verify observed.jsonl',
+        '  --sarif-out results.sarif',
+        '  --junit-out junit.xml',
+        '  --html-out report.html'
+      ].join(' \\\n')
     };
 
     const setSim = (key) => {
@@ -342,23 +372,30 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       txIn.addEventListener('input', () => {
         const sig = txIn.value.trim();
         if (!sig) {
-          btnClaim.href = 'https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=Pro+License+Claim+v1.1&body=Solana+Tx+Signature%3A+';
+          btnClaim.href = 'mailto:thongtuehuu@gmail.com?subject=MCP%20Guard%20Pro%20purchase';
           btnSolscan.href = '#pro-pack';
           btnSolscan.classList.add('btn-disabled');
           txStatus.textContent = 'Paste a valid base58 Tx signature (32–120 chars) for 1-click claim & Solscan verification.';
           return;
         }
         if (b58Re.test(sig)) {
-          btnClaim.href = 'https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=' + encodeURIComponent('Pro License Claim v1.1') + '&body=' + encodeURIComponent('Solana Tx Signature: ' + sig + '\nAmount: 3.25 USDC\nSolscan: https://solscan.io/tx/' + sig);
+          btnClaim.href = 'mailto:thongtuehuu@gmail.com?subject=' + encodeURIComponent('Pro License Claim v1.1') + '&body=' + encodeURIComponent('Solana Tx Signature: ' + sig + '\nAmount: 3.25 USDC\nSolscan: https://solscan.io/tx/' + sig);
           btnSolscan.href = 'https://solscan.io/tx/' + encodeURIComponent(sig);
           btnSolscan.classList.remove('btn-disabled');
-          txStatus.textContent = 'Valid base58 signature detected — ready for 1-click Claim Issue or Solscan check.';
+          txStatus.textContent = 'Valid base58 signature detected — ready for a private purchase claim.';
         } else {
           btnSolscan.href = '#pro-pack';
           btnSolscan.classList.add('btn-disabled');
           txStatus.textContent = 'Signature format looks invalid (expected 32–120 base58 characters).';
         }
       });
+    }
+    const checkoutLink = document.getElementById('order-checkout');
+    const inboundRef = new URL(location.href).searchParams.get('radar_ref');
+    if (checkoutLink && /^[0-9a-f]{24}_[1-9][0-9]{0,6}$/.test(inboundRef || '')) {
+      const target = new URL(checkoutLink.href);
+      target.searchParams.set('radar_ref', inboundRef);
+      checkoutLink.href = target.toString();
     }
   </script>
 </body>
