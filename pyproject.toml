@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-guard-kit"
-version = "1.0.0"
+version = "1.1.0"
 description = "Zero-dependency MCP tool fault-injection & anti-hallucination verifier for AI agents."
 readme = "README.md"
 license = { text = "MIT" }

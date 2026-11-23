@@ -5,7 +5,7 @@ from .faults import FAULT_CATALOG, FaultMode, FaultInjector
 from .verifier import ToolTrace, VerificationResult, AuditSummary, verify_trace, evaluate_suite
 from .runner import run_builtin_chaos_suite, render_markdown_report, render_html_report
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
     "__version__",

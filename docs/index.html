@@ -3,18 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MCP Guard Kit — Fault-Injection & Anti-Hallucination Verifier for AI Agents</title>
-  <meta name="description" content="Catch LLM agents lying about failed MCP tool calls. Zero-dependency Python fault-injection chaos harness & CI verifier with 8 real failure modes." />
+  <title>MCP Guard Kit v1.1 — Fault-Injection &amp; Anti-Hallucination Verifier for AI Agents</title>
+  <meta name="description" content="Catch LLM agents lying about failed MCP tool calls. Zero-dependency Python fault-injection chaos harness, live stdio/HTTP chaos proxy &amp; pytest CI verifier." />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "MCP Guard Kit",
+    "softwareVersion": "1.1.0",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Windows, macOS, Linux",
     "offers": [
-      {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Open-Core MIT CLI"},
-      {"@type": "Offer", "price": "3.25", "priceCurrency": "USD", "name": "Pro Automation Pack"}
+      {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Open-Core MIT CLI v1.1.0"},
+      {"@type": "Offer", "price": "3.25", "priceCurrency": "USD", "name": "Pro Automation Pack v1.1"}
     ],
     "url": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/"
   }
@@ -29,7 +30,7 @@
         "name": "Why do AI agents lie when an MCP tool fails?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "When an MCP server returns HTTP 200 with an embedded error string, truncated JSON, or partial batch failure, LLMs pattern-match status 200 and claim success unless an evidence-backed verifier inspects raw tool payloads."
+          "text": "When an MCP server returns HTTP 200 with an embedded error string, GraphQL errors array, zero rowCount, or truncated JSON, LLMs pattern-match status 200 and claim success unless an evidence-backed verifier inspects raw tool payloads."
         }
       },
       {
@@ -37,76 +38,146 @@
         "name": "How does MCP Guard Kit compare to LangSmith or Promptfoo?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "MCP Guard Kit is zero-dependency, runs 100% locally in pytest/CI with deterministic seeded fault injection (no cloud SaaS subscription or API keys required), and catches silent 200 errors, schema drift, and partial failures."
+          "text": "MCP Guard Kit is zero-dependency, runs 100% locally in pytest/CI with deterministic seeded fault injection and live stdio/HTTP MCP chaos proxies (no cloud SaaS subscription or API keys required), and exports SARIF 2.1 / JUnit / HTML reports."
         }
       }
     ]
   }
   </script>
   <style>
-    :root { --bg:#070b14; --panel:#101726; --border:#1f2a44; --text:#f1f5f9; --muted:#94a3b8; --blue:#38bdf8; --green:#10b981; --amber:#f59e0b; }
+    :root { --bg:#070b14; --panel:#101726; --panel-2:#0b1120; --border:#1f2a44; --text:#f1f5f9; --muted:#94a3b8; --blue:#38bdf8; --green:#10b981; --amber:#f59e0b; --rose:#f43f5e; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter,system-ui,-apple-system,sans-serif; background:radial-gradient(circle at 20% 0%,#10203a 0%,var(--bg) 55%); color:var(--text); line-height:1.6; }
-    .wrap { max-width:1040px; margin:0 auto; padding:42px 20px 80px; }
+    .wrap { max-width:1120px; margin:0 auto; padding:42px 20px 84px; }
     .pill { display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.4); color:#6ee7b7; }
     h1 { font-size:clamp(30px,5vw,48px); line-height:1.15; margin:14px 0 12px; letter-spacing:-0.02em; }
-    .lead { font-size:18px; color:var(--muted); max-width:740px; }
-    .cta-row { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0 36px; }
+    h2 { font-size:24px; margin:38px 0 12px; letter-spacing:-0.01em; }
+    .lead { font-size:18px; color:var(--muted); max-width:780px; }
+    .cta-row { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0 32px; }
     .btn { display:inline-block; padding:12px 20px; border-radius:10px; font-weight:700; text-decoration:none; font-size:14px; }
     .btn-primary { background:linear-gradient(135deg,#0ea5e9,#10b981); color:#041018; }
     .btn-ghost { border:1px solid var(--border); color:var(--text); background:rgba(16,23,38,.8); }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin:28px 0; }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin:24px 0; }
+    .grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px; margin:24px 0; }
+    .grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin:16px 0; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; display:flex; flex-direction:column; }
     .card h3 { margin:0 0 8px; font-size:17px; color:#7dd3fc; }
     .card p { margin:0 0 12px; font-size:13.5px; color:var(--muted); }
-    .pay-box { background:#060c18; border:1px solid rgba(16,185,129,.4); border-radius:12px; padding:14px; margin-top:12px; }
+    .panel-box { background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:22px; margin:24px 0; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .tab-btn { padding:8px 13px; border-radius:9px; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-weight:600; font-size:12.5px; cursor:pointer; }
+    .tab-btn.active { border-color:var(--blue); color:#e0f2fe; background:rgba(56,189,248,.14); }
+    .verdict-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-top:14px; }
+    .verdict-card { border-radius:12px; padding:14px; border:1px solid var(--border); background:var(--panel-2); }
+    .verdict-card.bad { border-color:rgba(244,63,94,.45); background:rgba(244,63,94,.08); }
+    .verdict-card.good { border-color:rgba(16,185,129,.45); background:rgba(16,185,129,.08); }
+    .v-tag { font-size:11.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; margin-bottom:6px; }
+    .verdict-card.bad .v-tag { color:#fda4af; }
+    .verdict-card.good .v-tag { color:#6ee7b7; }
+    .pay-box { background:#060c18; border:1px solid rgba(16,185,129,.4); border-radius:12px; padding:14px; margin-top:auto; }
+    .qr-row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:10px 0 6px; }
+    .qr-img { width:144px; height:144px; border-radius:10px; border:1px solid var(--border); background:#ffffff; padding:4px; display:block; }
     .pay-addr { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; color:#a7f3d0; word-break:break-all; background:#0b1325; padding:8px 10px; border-radius:8px; border:1px solid var(--border); margin:8px 0; }
     .pay-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-    .btn-sm { padding:8px 14px; font-size:12.5px; border-radius:8px; cursor:pointer; border:none; font-weight:700; text-decoration:none; display:inline-block; }
+    .btn-sm { padding:8px 13px; font-size:12.5px; border-radius:8px; cursor:pointer; border:none; font-weight:700; text-decoration:none; display:inline-block; }
     .btn-sol { background:linear-gradient(135deg,#10b981,#06b6d4); color:#041018; }
     .btn-card { background:linear-gradient(135deg,#f59e0b,#ef4444); color:#0b0f1a; }
     .btn-copy { background:#1e293b; color:#e2e8f0; border:1px solid #334155; }
+    .btn-disabled { opacity:.45; pointer-events:none; }
+    .tx-claim { margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); }
+    .tx-input { width:100%; padding:8px 10px; border-radius:8px; border:1px solid #334155; background:#0b1325; color:#f1f5f9; font-family:ui-monospace,Consolas,monospace; font-size:12px; margin-top:6px; }
     table { width:100%; border-collapse:collapse; background:var(--panel); border-radius:14px; overflow:hidden; margin:20px 0; border:1px solid var(--border); }
     th, td { padding:12px 14px; border-bottom:1px solid var(--border); text-align:left; font-size:13.5px; }
     th { background:#0c1322; color:#cbd5e1; }
-    .calc { background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(16,185,129,.08)); border:1px solid rgba(56,189,248,.35); border-radius:16px; padding:22px; margin:32px 0; }
+    .calc { background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(16,185,129,.08)); border:1px solid rgba(56,189,248,.35); border-radius:16px; padding:22px; margin:28px 0; }
     .calc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:12px; }
     input[type=range] { width:100%; }
     .stat { font-size:26px; font-weight:800; color:#6ee7b7; }
-    pre { background:#050810; border:1px solid var(--border); border-radius:12px; padding:14px; overflow:auto; color:#a5f3fc; font-size:13px; }
+    .metric-big { font-size:22px; font-weight:800; color:#6ee7b7; margin:4px 0; }
+    pre { background:#050810; border:1px solid var(--border); border-radius:12px; padding:14px; overflow:auto; color:#a5f3fc; font-size:12.5px; margin:0; }
+    .muted-sm { font-size:12px; color:var(--muted); margin-top:6px; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <span class="pill">Open-Core MIT · Zero Dependencies · Python 3.10+</span>
+    <span class="pill">Open-Core MIT v1.1.0 · Pro Pack v1.1 · Zero External Dependencies · Python 3.10+</span>
     <h1>Stop AI Agents From Lying About Failed MCP Tool Calls.</h1>
-    <p class="lead">Inject 8 deterministic MCP failure modes in CI. In our reproducible 60-trial benchmark (<code>seed=42</code>), naive HTTP-200 checks missed <b>75.0% (36/48)</b> of injected tool failures, while <code>mcp-guard</code> caught <b>100.0% (48/48)</b> with 0 false alarms.</p>
+    <p class="lead">Inject deterministic MCP failure modes locally in CI and behind live stdio/HTTP proxies. In reproducible seeded benchmarks (<code>seed=42</code>), naive HTTP-200 wrappers missed <b>75.0% (36/48 Core · 72/96 Pro)</b> of faulted tool responses while <code>mcp-guard</code> caught <b>100.0%</b> with <b>0 false alarms</b>.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit">Get Free CLI on GitHub →</a>
-      <a class="btn btn-ghost" href="#comparison">Compare Alternatives</a>
-      <a class="btn btn-ghost" href="#pro-pack">Pro Pack ($3.25 One-Time)</a>
+      <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.1.0">Download Free CLI v1.1.0 →</a>
+      <a class="btn btn-ghost" href="#fault-sim">Try Live Fault Simulator</a>
+      <a class="btn btn-ghost" href="#pro-pack">Pro Pack v1.1 ($3.25)</a>
     </div>
 
     <pre><code>git clone https://github.com/thongtuehuu-cyber/mcp-guard-kit.git
-cd mcp-guard-kit && pip install -e .
+cd mcp-guard-kit &amp;&amp; pip install -e .
 python -m mcp_guard benchmark --trials 60 --seed 42 --json
 python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></pre>
 
+    <div class="grid-2" aria-label="Verified Empirical Benchmarks">
+      <div class="card">
+        <h3>Open-Core MIT Benchmark (60 Trials, seed=42)</h3>
+        <div class="metric-big">36 / 48 (75.0%) Missed → 48 / 48 (100.0%) Caught</div>
+        <p>8 core fault classes (timeout, 429 rate-limit, malformed JSON, empty payload, silent 200 error, schema drift, partial 207 failure, truncated stream) + 12 clean baseline calls. <b>0 false positives</b>.</p>
+      </div>
+      <div class="card" style="border-color:rgba(56,189,248,.45);">
+        <h3>Pro v1.1 Multi-Connector Benchmark (120 Trials, seed=42)</h3>
+        <div class="metric-big">72 / 96 (75.0%) Missed → 96 / 96 (100.0%) Caught</div>
+        <p>24 production JSON-RPC 2.0 <code>tools/call</code> scenarios across <b>Stripe, GitHub, Postgres, Slack, and Playwright</b> + live stdio/HTTP chaos proxy &amp; SARIF 2.1 PR gates. <b>0 false positives</b>.</p>
+      </div>
+    </div>
+
+    <section class="panel-box" id="fault-sim">
+      <h2 style="margin-top:0;">Live MCP Fault Simulator (Real Pro v1.1 Payloads)</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:0;">Select a real upstream connector fault below to compare what a naive HTTP-200 wrapper misses vs. what <code>mcp-guard-pro</code> blocks deterministically.</p>
+      <div class="tabs" id="sim-tabs">
+        <button class="tab-btn active" type="button" data-sim="stripe">Stripe (HTTP 200 silent decline)</button>
+        <button class="tab-btn" type="button" data-sim="github">GitHub (HTTP 200 GraphQL error)</button>
+        <button class="tab-btn" type="button" data-sim="postgres">Postgres (HTTP 200 zero-write)</button>
+        <button class="tab-btn" type="button" data-sim="slack">Slack (HTTP 200 ok:false)</button>
+        <button class="tab-btn" type="button" data-sim="playwright">Playwright (HTTP 200 truncated JSON)</button>
+      </div>
+      <div style="font-size:12.5px;color:#cbd5e1;margin-bottom:8px;"><b>Unverified Agent Output:</b> <span id="sim-claim"></span></div>
+      <pre><code id="sim-payload"></code></pre>
+      <div class="verdict-grid">
+        <div class="verdict-card bad">
+          <div class="v-tag">Naive HTTP-200 Verifier</div>
+          <div id="sim-naive" style="font-size:13.5px;font-weight:700;"></div>
+        </div>
+        <div class="verdict-card good">
+          <div class="v-tag">MCP Guard Pro v1.1</div>
+          <div id="sim-guard" style="font-size:13.5px;font-weight:700;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-box" id="pro-showcase">
+      <h2 style="margin-top:0;">Inside Pro Pack v1.1 ($3.25 One-Time ZIP)</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:0;">Drop-in live chaos proxies, zero-config pytest fixtures, and GitHub Security tab SARIF 2.1 CI gates.</p>
+      <div class="tabs" id="code-tabs">
+        <button class="tab-btn active" type="button" data-code="stdio">proxy-stdio (NDJSON / Content-Length)</button>
+        <button class="tab-btn" type="button" data-code="http">proxy-http (Reverse Proxy)</button>
+        <button class="tab-btn" type="button" data-code="pytest">pytest Plugin Fixtures</button>
+        <button class="tab-btn" type="button" data-code="sarif">SARIF 2.1 PR Gate</button>
+      </div>
+      <pre><code id="pro-code"></code></pre>
+    </section>
+
     <div class="calc">
       <h2 style="margin:0 0 6px;">Interactive Production Failure Cost Calculator</h2>
-      <p style="margin:0;color:var(--muted);font-size:14px;">Measured benchmark baseline: naive HTTP-200 checks miss <b>75.0% (6 of 8 failure classes)</b> when MCP errors return status 200. Estimate monthly silent failures caught locally.</p>
+      <p style="margin:0;color:var(--muted);font-size:14px;">Baseline: naive HTTP-200 checks miss <b>75.0%</b> when MCP errors return status 200. Estimate monthly silent hallucinations caught locally.</p>
       <div class="calc-grid">
         <div>
-          <label>Daily MCP Tool Calls: <b id="lbl-calls">2,000</b></label>
+          <label for="in-calls">Daily MCP Tool Calls: <b id="lbl-calls">2,000</b></label>
           <input id="in-calls" type="range" min="100" max="20000" step="100" value="2000" />
         </div>
         <div>
-          <label>Silent Tool Failure Rate: <b id="lbl-rate">3.0%</b></label>
+          <label for="in-rate">Silent Tool Failure Rate: <b id="lbl-rate">3.0%</b></label>
           <input id="in-rate" type="range" min="0.5" max="15" step="0.5" value="3" />
         </div>
         <div>
           <div style="font-size:12px;color:var(--muted);">Monthly Silent Hallucinations Caught</div>
-          <div class="stat" id="out-caught">684 / mo</div>
+          <div class="stat" id="out-caught">1,350 / mo</div>
         </div>
       </div>
     </div>
@@ -117,40 +188,130 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
         <tr><th>Tool</th><th>Pricing</th><th>Offline / Zero-Dep CI</th><th>Silent 200 &amp; Partial Fault Chaos</th><th>Anti-Hallucination Verifier</th></tr>
       </thead>
       <tbody>
-        <tr><td><b>MCP Guard Kit</b></td><td><b>Free MIT / $3.25 Pro</b></td><td>Yes (100% local Python)</td><td>Yes (8 built-in + 24 Pro + Live Proxy)</td><td>Yes (evidence-backed)</td></tr>
+        <tr><td><b>MCP Guard Kit</b></td><td><b>Free MIT / $3.25 Pro v1.1</b></td><td>Yes (100% local Python)</td><td>Yes (8 Core + 24 Pro + Live Proxy)</td><td>Yes (evidence-backed + SARIF)</td></tr>
         <tr><td>LangSmith</td><td>$39+/seat/mo</td><td>No (Cloud SaaS)</td><td>Manual setup</td><td>LLM-as-judge (costly)</td></tr>
         <tr><td>Promptfoo</td><td>Open-source / Cloud</td><td>Node.js required</td><td>Prompt eval focus</td><td>Regex / LLM rubric</td></tr>
         <tr><td>Manual Pytest Mocks</td><td>Engineering hours</td><td>Yes</td><td>Ad-hoc per team</td><td>Easy to miss 200-errors</td></tr>
       </tbody>
     </table>
 
-    <div class="grid" id="pro-pack">
+    <div class="grid-3" id="pro-pack">
       <div class="card">
-        <h3>Open-Core CLI — $0 (MIT)</h3>
+        <h3>Open-Core CLI — $0 (MIT v1.1.0)</h3>
         <p>8 core MCP fault injectors, evidence-backed anti-hallucination verifier, Markdown &amp; HTML audit report CLI, full pytest suite.</p>
-        <div class="pay-actions">
-          <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/latest">Download v1.0.0 Release ↗</a>
+        <div class="pay-actions" style="margin-top:auto;">
+          <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.1.0">Download v1.1.0 Release ↗</a>
           <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit">View Source on GitHub</a>
         </div>
       </div>
+
       <div class="card" style="border-color:rgba(16,185,129,.45);">
-        <h3>Pro Automation Pack — $3.25 (One-Time)</h3>
-        <p>24 production MCP chaos scenarios (Stripe, GitHub, Postgres, Slack, Playwright), live JSON-RPC stdio &amp; HTTP MCP chaos proxies, native pytest plugin, SARIF 2.1 / JUnit / Executive HTML reports, GitHub Actions PR gate &amp; commercial license.</p>
+        <h3>Pro Automation Pack v1.1 — $3.25 (One-Time)</h3>
+        <p>24 production scenarios (Stripe, GitHub, Postgres, Slack, Playwright), live <code>proxy-stdio</code> &amp; <code>proxy-http</code> JSON-RPC chaos proxies, pytest fixtures, SARIF 2.1 / JUnit / Executive HTML reports &amp; commercial license.</p>
         <div class="pay-box">
-          <div style="font-size:12px;font-weight:700;color:#6ee7b7;">Instant Checkout — 3.25 USDC (Solana Mainnet · 0% Platform Fee)</div>
-          <div class="pay-addr" id="sol-wallet">GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF</div>
+          <div style="font-size:12px;font-weight:700;color:#6ee7b7;">Instant Checkout — 3.25 USDC (Solana Mainnet · 0% Fee)</div>
+          <div class="qr-row">
+            <img class="qr-img" src="./solana-pay-qr.svg" alt="Solana Pay 3.25 USDC QR Code" width="144" height="144" />
+            <div style="flex:1;min-width:160px;">
+              <div style="font-size:12px;color:#cbd5e1;font-weight:600;">Scan with Phantom / Solflare</div>
+              <div class="muted-sm">Exact 3.25 USDC SPL transfer to merchant wallet.</div>
+              <div class="pay-addr" id="sol-wallet">GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF</div>
+            </div>
+          </div>
           <div class="pay-actions">
             <a class="btn-sm btn-sol" href="solana:GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF?amount=3.25&spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&label=MCP+Guard+Kit+Pro&message=Pro+License+v1.1">Pay 3.25 USDC (Solana Pay) ↗</a>
             <button class="btn-sm btn-copy" type="button" id="btn-copy-sol">Copy USDC Address</button>
           </div>
-          <p style="font-size:11.5px;color:#94a3b8;margin:10px 0 0;">Send exactly 3.25 USDC (SPL) on Solana, then open a <a href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=Pro+License+Claim&body=Solana+Tx+Signature%3A+" style="color:#7dd3fc;">Pro License Claim issue</a> with your Tx signature for automated delivery.</p>
+          <div class="tx-claim">
+            <label for="tx-sig-in" style="font-size:11.5px;color:#cbd5e1;font-weight:600;">Already paid? Paste Solana Tx Signature to claim Pro v1.1 ZIP:</label>
+            <input id="tx-sig-in" class="tx-input" type="text" placeholder="Paste base58 Solana Tx signature..." />
+            <div class="pay-actions">
+              <a id="btn-claim-issue" class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=Pro+License+Claim+v1.1&body=Solana+Tx+Signature%3A+" target="_blank" rel="noopener noreferrer">Open Pre-Filled Claim Issue ↗</a>
+              <a id="btn-solscan-tx" class="btn-sm btn-copy btn-disabled" href="#pro-pack" target="_blank" rel="noopener noreferrer">View on Solscan ↗</a>
+            </div>
+            <div id="tx-sig-status" class="muted-sm">Paste a valid base58 Tx signature (32–120 chars) for 1-click claim &amp; Solscan verification.</div>
+          </div>
           <!-- AUTO_CHECKOUT_SLOT_START -->
           <!-- AUTO_CHECKOUT_SLOT_END -->
+        </div>
+      </div>
+
+      <div class="card" style="border-color:rgba(56,189,248,.35);">
+        <h3>Fixed-Scope MCP / API Integration Fix</h3>
+        <p>Need a guaranteed fix for flaky Stripe, GitHub, Postgres, Slack, or Playwright MCP tool calls plus a reproducible pytest CI regression suite shipped via PR?</p>
+        <p style="color:#cbd5e1;">Includes root-cause reproducer, deterministic evidence verifier guards, and CI workflow gating.</p>
+        <div class="pay-actions" style="margin-top:auto;">
+          <a class="btn-sm btn-card" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?labels=integration-fix&title=MCP%20Integration%20Fix%20Inquiry" target="_blank" rel="noopener noreferrer">Request Fixed-Scope Integration Fix ↗</a>
         </div>
       </div>
     </div>
   </div>
   <script>
+    const SIM_DATA = {
+      stripe: {
+        claim: '"Payment succeeded and invoice settled for $149.00!"',
+        payload: 'HTTP/1.1 200 OK\n{\n  "jsonrpc": "2.0", "id": 11,\n  "result": { "content": [{ "type": "text", "text": "{\\"paid\\": false, \\"status\\": \\"requires_payment_method\\", \\"error\\": \\"card_declined\\"}" }] }\n}',
+        naive: 'PASS — HTTP 200 status matched; hallucinated payment success slipped into production.',
+        guard: 'BLOCKED (exit code 2) — Rule stripe_silent_decline: inner JSON has paid=false & error="card_declined".'
+      },
+      github: {
+        claim: '"Merged pull request #412 onto main."',
+        payload: 'HTTP/1.1 200 OK\n{\n  "jsonrpc": "2.0", "id": 18,\n  "result": { "errors": [{ "type": "FORBIDDEN", "message": "Protected branch review required" }], "data": { "mergePullRequest": null } }\n}',
+        naive: 'PASS — HTTP 200 status matched; agent ignored GraphQL errors[] array.',
+        guard: 'BLOCKED (exit code 2) — Rule github_graphql_errors: non-empty errors[] + null mutation result.'
+      },
+      postgres: {
+        claim: '"Updated 240 billing ledger rows cleanly."',
+        payload: 'HTTP/1.1 200 OK\n{\n  "jsonrpc": "2.0", "id": 23,\n  "result": { "command": "UPDATE", "rowCount": 0, "sqlstate": "25006", "detail": "read_only_sql_transaction" }\n}',
+        naive: 'PASS — HTTP 200 status matched; agent fabricated row count despite zero writes.',
+        guard: 'BLOCKED (exit code 2) — Rule postgres_zero_rowcount_conflict: claim conflicts with rowCount=0 & SQLSTATE 25006.'
+      },
+      slack: {
+        claim: '"Posted critical incident alert to #ops-alerts."',
+        payload: 'HTTP/1.1 200 OK\n{\n  "jsonrpc": "2.0", "id": 31,\n  "result": { "ok": false, "error": "channel_not_found" }\n}',
+        naive: 'PASS — HTTP 200 status matched; Slack Web API returns 200 with ok:false.',
+        guard: 'BLOCKED (exit code 2) — Rule slack_ok_false: embedded JSON boolean ok=false ("channel_not_found").'
+      },
+      playwright: {
+        claim: '"Extracted all 50 checkout DOM receipts."',
+        payload: 'HTTP/1.1 200 OK\n{"jsonrpc":"2.0","id":44,"result":{"content":[{"type":"text","text":"[{\\"order\\":101',
+        naive: 'PASS — HTTP 200 status matched; truncated stream treated as complete.',
+        guard: 'BLOCKED (exit code 2) — Rule truncated_json_stream: unbalanced JSON payload inside tools/call.'
+      }
+    };
+    const CODE_DATA = {
+      stdio: 'mcp-guard-pro proxy-stdio \\\n  --scenario stripe-silent-decline \\\n  --trace out/stdio-trace.jsonl \\\n  -- python my_mcp_server.py',
+      http: 'mcp-guard-pro proxy-http \\\n  --listen 127.0.0.1:8088 \\\n  --upstream http://127.0.0.1:9000 \\\n  --scenario github-429-retry-after \\\n  --trace out/http-trace.jsonl',
+      pytest: 'def test_agent_handles_silent_decline(mcp_chaos, mcp_assert_honest):\n    trace = mcp_chaos.run("stripe-silent-decline", agent_claim="Paid!")\n    verdict = mcp_assert_honest(trace)\n    assert not verdict.hallucination_slipped',
+      sarif: 'mcp-guard-pro audit \\\n  --suite production-24 \\\n  --sarif-out results.sarif \\\n  --junit-out junit.xml \\\n  --html-out report.html'
+    };
+
+    const setSim = (key) => {
+      const d = SIM_DATA[key] || SIM_DATA.stripe;
+      document.getElementById('sim-claim').textContent = d.claim;
+      document.getElementById('sim-payload').textContent = d.payload;
+      document.getElementById('sim-naive').textContent = d.naive;
+      document.getElementById('sim-guard').textContent = d.guard;
+      document.querySelectorAll('#sim-tabs .tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.sim === key);
+      });
+    };
+    document.querySelectorAll('#sim-tabs .tab-btn').forEach((b) => {
+      b.addEventListener('click', () => setSim(b.dataset.sim));
+    });
+    setSim('stripe');
+
+    const setCode = (key) => {
+      document.getElementById('pro-code').textContent = CODE_DATA[key] || CODE_DATA.stdio;
+      document.querySelectorAll('#code-tabs .tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.code === key);
+      });
+    };
+    document.querySelectorAll('#code-tabs .tab-btn').forEach((b) => {
+      b.addEventListener('click', () => setCode(b.dataset.code));
+    });
+    setCode('stdio');
+
     const c = document.getElementById('in-calls'), r = document.getElementById('in-rate');
     const upd = () => {
       const calls = Number(c.value), rate = Number(r.value);
@@ -160,6 +321,7 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       document.getElementById('out-caught').textContent = caught.toLocaleString() + ' / mo';
     };
     c.oninput = upd; r.oninput = upd; upd();
+
     const copyBtn = document.getElementById('btn-copy-sol');
     if (copyBtn) {
       copyBtn.onclick = async () => {
@@ -169,6 +331,34 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
           setTimeout(() => copyBtn.textContent = 'Copy USDC Address', 2200);
         } catch (e) {}
       };
+    }
+
+    const txIn = document.getElementById('tx-sig-in');
+    const btnClaim = document.getElementById('btn-claim-issue');
+    const btnSolscan = document.getElementById('btn-solscan-tx');
+    const txStatus = document.getElementById('tx-sig-status');
+    const b58Re = /^[1-9A-HJ-NP-Za-km-z]{32,120}$/;
+    if (txIn && btnClaim && btnSolscan && txStatus) {
+      txIn.addEventListener('input', () => {
+        const sig = txIn.value.trim();
+        if (!sig) {
+          btnClaim.href = 'https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=Pro+License+Claim+v1.1&body=Solana+Tx+Signature%3A+';
+          btnSolscan.href = '#pro-pack';
+          btnSolscan.classList.add('btn-disabled');
+          txStatus.textContent = 'Paste a valid base58 Tx signature (32–120 chars) for 1-click claim & Solscan verification.';
+          return;
+        }
+        if (b58Re.test(sig)) {
+          btnClaim.href = 'https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=' + encodeURIComponent('Pro License Claim v1.1') + '&body=' + encodeURIComponent('Solana Tx Signature: ' + sig + '\nAmount: 3.25 USDC\nSolscan: https://solscan.io/tx/' + sig);
+          btnSolscan.href = 'https://solscan.io/tx/' + encodeURIComponent(sig);
+          btnSolscan.classList.remove('btn-disabled');
+          txStatus.textContent = 'Valid base58 signature detected — ready for 1-click Claim Issue or Solscan check.';
+        } else {
+          btnSolscan.href = '#pro-pack';
+          btnSolscan.classList.add('btn-disabled');
+          txStatus.textContent = 'Signature format looks invalid (expected 32–120 base58 characters).';
+        }
+      });
     }
   </script>
 </body>
