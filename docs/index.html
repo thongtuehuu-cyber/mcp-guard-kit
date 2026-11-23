@@ -55,10 +55,17 @@
     .btn { display:inline-block; padding:12px 20px; border-radius:10px; font-weight:700; text-decoration:none; font-size:14px; }
     .btn-primary { background:linear-gradient(135deg,#0ea5e9,#10b981); color:#041018; }
     .btn-ghost { border:1px solid var(--border); color:var(--text); background:rgba(16,23,38,.8); }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:28px 0; }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; }
-    .card h3 { margin:0 0 6px; font-size:16px; color:#7dd3fc; }
-    .card p { margin:0; font-size:13.5px; color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin:28px 0; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    .card h3 { margin:0 0 8px; font-size:17px; color:#7dd3fc; }
+    .card p { margin:0 0 12px; font-size:13.5px; color:var(--muted); }
+    .pay-box { background:#060c18; border:1px solid rgba(16,185,129,.4); border-radius:12px; padding:14px; margin-top:12px; }
+    .pay-addr { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; color:#a7f3d0; word-break:break-all; background:#0b1325; padding:8px 10px; border-radius:8px; border:1px solid var(--border); margin:8px 0; }
+    .pay-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .btn-sm { padding:8px 14px; font-size:12.5px; border-radius:8px; cursor:pointer; border:none; font-weight:700; text-decoration:none; display:inline-block; }
+    .btn-sol { background:linear-gradient(135deg,#10b981,#06b6d4); color:#041018; }
+    .btn-card { background:linear-gradient(135deg,#f59e0b,#ef4444); color:#0b0f1a; }
+    .btn-copy { background:#1e293b; color:#e2e8f0; border:1px solid #334155; }
     table { width:100%; border-collapse:collapse; background:var(--panel); border-radius:14px; overflow:hidden; margin:20px 0; border:1px solid var(--border); }
     th, td { padding:12px 14px; border-bottom:1px solid var(--border); text-align:left; font-size:13.5px; }
     th { background:#0c1322; color:#cbd5e1; }
@@ -120,10 +127,25 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       <div class="card">
         <h3>Open-Core CLI — $0 (MIT)</h3>
         <p>8 core MCP fault injectors, evidence-backed anti-hallucination verifier, Markdown &amp; HTML audit report CLI, full pytest suite.</p>
+        <div class="pay-actions">
+          <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/latest">Download v1.0.0 Release ↗</a>
+          <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit">View Source on GitHub</a>
+        </div>
       </div>
-      <div class="card">
+      <div class="card" style="border-color:rgba(16,185,129,.45);">
         <h3>Pro Automation Pack — $29 (One-Time)</h3>
         <p>24 real-world chaos scenarios (Stripe, GitHub, Postgres, Slack, Playwright MCP), GitHub Actions PR blocking gates, executive HTML templates &amp; commercial license.</p>
+        <div class="pay-box">
+          <div style="font-size:12px;font-weight:700;color:#6ee7b7;">Instant Checkout — 29 USDC (Solana Mainnet · 0% Platform Fee)</div>
+          <div class="pay-addr" id="sol-wallet">GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF</div>
+          <div class="pay-actions">
+            <a class="btn-sm btn-sol" href="solana:GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF?amount=29&spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&label=MCP+Guard+Kit+Pro&message=Pro+License+v1.0">Pay 29 USDC (Solana Pay) ↗</a>
+            <button class="btn-sm btn-copy" type="button" id="btn-copy-sol">Copy USDC Address</button>
+          </div>
+          <p style="font-size:11.5px;color:#94a3b8;margin:10px 0 0;">Send exactly 29 USDC (SPL) on Solana, then open a <a href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?title=Pro+License+Claim&body=Solana+Tx+Signature%3A+" style="color:#7dd3fc;">Pro License Claim issue</a> with your Tx signature for automated delivery.</p>
+          <!-- AUTO_CHECKOUT_SLOT_START -->
+          <!-- AUTO_CHECKOUT_SLOT_END -->
+        </div>
       </div>
     </div>
   </div>
@@ -137,6 +159,16 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       document.getElementById('out-caught').textContent = caught.toLocaleString() + ' / mo';
     };
     c.oninput = upd; r.oninput = upd; upd();
+    const copyBtn = document.getElementById('btn-copy-sol');
+    if (copyBtn) {
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText('GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF');
+          copyBtn.textContent = 'Copied Solana Address ✓';
+          setTimeout(() => copyBtn.textContent = 'Copy USDC Address', 2200);
+        } catch (e) {}
+      };
+    }
   </script>
 </body>
 </html>
