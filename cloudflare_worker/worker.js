@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker: Zero-Cost 24/7 Solana USDC Auto-Fulfillment for MCP Guard Kit Pro ($29).
+ * Cloudflare Worker: Zero-Cost 24/7 Solana USDC Auto-Fulfillment for MCP Guard Kit Pro ($3.25).
  * Privacy-first: Buyer emails live ONLY in Cloudflare KV keyed by order_id — NEVER written on-chain.
  */
 export default {
@@ -20,7 +20,7 @@ export default {
       return json({ ok: true, reference });
     }
 
-    // 2. Helius Enhanced Webhook for incoming Solana mainnet USDC transfers -> verify >= 29 USDC -> email ZIP link
+    // 2. Helius Enhanced Webhook for incoming Solana mainnet USDC transfers -> verify >= 3.25 USDC -> email ZIP link
     if (request.method === "POST" && url.pathname === "/api/helius-webhook") {
       const auth = request.headers.get("authorization") || "";
       if (env.HELIUS_AUTH_SECRET && auth !== env.HELIUS_AUTH_SECRET) {
@@ -33,7 +33,7 @@ export default {
         for (const t of tx.tokenTransfers || []) {
           const validMint = t.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
           const validDest = t.toUserAccount === env.MERCHANT_WALLET;
-          const validAmt = Number(t.tokenAmount || 0) >= 28.9;
+          const validAmt = Number(t.tokenAmount || 0) >= 3.20;
           if (!validMint || !validDest || !validAmt) continue;
 
           // Match reference key present in accountData keys
@@ -96,7 +96,7 @@ async function sendBrevoDelivery(env, toEmail, downloadUrl, txSig) {
     body: JSON.stringify({
       sender: { name: "MCP Guard Studio", email: env.SENDER_EMAIL },
       to: [{ email: toEmail }],
-      subject: "Your MCP Guard Kit Pro v1.0 License & Download",
+      subject: "Your MCP Guard Kit Pro v1.1 License & Download",
       textContent: `Thank you for purchasing MCP Guard Kit Pro!\n\nDownload link (valid 7 days):\n${downloadUrl}\n\nSolana Tx: ${txSig}\n`,
     }),
   });

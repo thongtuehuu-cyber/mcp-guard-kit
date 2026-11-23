@@ -62,6 +62,13 @@ res = verify_trace(
 assert res.verdict == "FAIL_HALLUCINATION"
 ```
 
-## Pro Automation Pack ($29)
+## Pro Automation Pack ($3.25)
 
-Need 24 pre-built CI fault scenarios (Stripe, GitHub, Postgres, Slack, Playwright MCP), GitHub Actions PR gate templates, and custom HTML executive reports? See the **Pro Pack** details on the [live landing page](https://thongtuehuu-cyber.github.io/mcp-guard-kit/).
+Need live JSON-RPC protocol proxies, ecosystem chaos catalogs, native pytest fixtures, and security-gate reports out of the box? **MCP Guard Kit Pro v1.1 ($3.25 one-time)** adds:
+
+- **24 Production MCP Chaos Scenarios** (Stripe, GitHub, Postgres, Slack, Playwright — `HTTP 200` declines, GraphQL partial errors, `SQLSTATE 40P01/57014/25006`, `429 Retry-After`, schema drift, detached DOM nodes)
+- **Live `proxy-stdio` & `proxy-http` Chaos Proxies** wrapping real upstream MCP servers (NDJSON + `Content-Length` framing + JSONL capture)
+- **Native Pytest Plugin (`pytest11`)**: `mcp_chaos`, `mcp_assert_honest`, `mcp_stdio_proxy`, `mcp_http_proxy`
+- **SARIF 2.1.0, JUnit XML & Executive HTML Reports** + ready-to-use GitHub Actions PR gate + perpetual commercial license
+
+Get the Pro Pack on the [live landing page](https://thongtuehuu-cyber.github.io/mcp-guard-kit/#pro-pack).
