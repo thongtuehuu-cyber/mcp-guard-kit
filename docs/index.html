@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MCP Guard Kit — Fault-Injection & Anti-Hallucination Verifier for AI Agents</title>
+  <meta name="description" content="Catch LLM agents lying about failed MCP tool calls. Zero-dependency Python fault-injection chaos harness & CI verifier with 8 real failure modes." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MCP Guard Kit",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "offers": [
+      {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Open-Core MIT CLI"},
+      {"@type": "Offer", "price": "29", "priceCurrency": "USD", "name": "Pro Automation Pack"}
+    ],
+    "url": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why do AI agents lie when an MCP tool fails?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When an MCP server returns HTTP 200 with an embedded error string, truncated JSON, or partial batch failure, LLMs pattern-match status 200 and claim success unless an evidence-backed verifier inspects raw tool payloads."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does MCP Guard Kit compare to LangSmith or Promptfoo?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCP Guard Kit is zero-dependency, runs 100% locally in pytest/CI with deterministic seeded fault injection (no cloud SaaS subscription or API keys required), and catches silent 200 errors, schema drift, and partial failures."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root { --bg:#070b14; --panel:#101726; --border:#1f2a44; --text:#f1f5f9; --muted:#94a3b8; --blue:#38bdf8; --green:#10b981; --amber:#f59e0b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,system-ui,-apple-system,sans-serif; background:radial-gradient(circle at 20% 0%,#10203a 0%,var(--bg) 55%); color:var(--text); line-height:1.6; }
+    .wrap { max-width:1040px; margin:0 auto; padding:42px 20px 80px; }
+    .pill { display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.4); color:#6ee7b7; }
+    h1 { font-size:clamp(30px,5vw,48px); line-height:1.15; margin:14px 0 12px; letter-spacing:-0.02em; }
+    .lead { font-size:18px; color:var(--muted); max-width:740px; }
+    .cta-row { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0 36px; }
+    .btn { display:inline-block; padding:12px 20px; border-radius:10px; font-weight:700; text-decoration:none; font-size:14px; }
+    .btn-primary { background:linear-gradient(135deg,#0ea5e9,#10b981); color:#041018; }
+    .btn-ghost { border:1px solid var(--border); color:var(--text); background:rgba(16,23,38,.8); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:28px 0; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; }
+    .card h3 { margin:0 0 6px; font-size:16px; color:#7dd3fc; }
+    .card p { margin:0; font-size:13.5px; color:var(--muted); }
+    table { width:100%; border-collapse:collapse; background:var(--panel); border-radius:14px; overflow:hidden; margin:20px 0; border:1px solid var(--border); }
+    th, td { padding:12px 14px; border-bottom:1px solid var(--border); text-align:left; font-size:13.5px; }
+    th { background:#0c1322; color:#cbd5e1; }
+    .calc { background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(16,185,129,.08)); border:1px solid rgba(56,189,248,.35); border-radius:16px; padding:22px; margin:32px 0; }
+    .calc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:12px; }
+    input[type=range] { width:100%; }
+    .stat { font-size:26px; font-weight:800; color:#6ee7b7; }
+    pre { background:#050810; border:1px solid var(--border); border-radius:12px; padding:14px; overflow:auto; color:#a5f3fc; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="pill">Open-Core MIT · Zero Dependencies · Python 3.10+</span>
+    <h1>Stop AI Agents From Lying About Failed MCP Tool Calls.</h1>
+    <p class="lead">Inject 8 deterministic MCP failure modes (silent HTTP 200 errors, truncated JSON, partial batch failures, 429 rate limits, schema drift) in CI and kill the 38% false-positive verifier wall.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit">Get Free CLI on GitHub →</a>
+      <a class="btn btn-ghost" href="#comparison">Compare Alternatives</a>
+      <a class="btn btn-ghost" href="#pro-pack">Pro Pack ($29 One-Time)</a>
+    </div>
+
+    <pre><code>git clone https://github.com/thongtuehuu-cyber/mcp-guard-kit.git
+cd mcp-guard-kit && pip install -e .
+python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></pre>
+
+    <div class="calc">
+      <h2 style="margin:0 0 6px;">Interactive Production Failure Cost Calculator</h2>
+      <p style="margin:0;color:var(--muted);font-size:14px;">Estimate how many silent agent hallucinations slip into production each month without evidence-backed MCP fault verification.</p>
+      <div class="calc-grid">
+        <div>
+          <label>Daily MCP Tool Calls: <b id="lbl-calls">2,000</b></label>
+          <input id="in-calls" type="range" min="100" max="20000" step="100" value="2000" />
+        </div>
+        <div>
+          <label>Silent Tool Failure Rate: <b id="lbl-rate">3.0%</b></label>
+          <input id="in-rate" type="range" min="0.5" max="15" step="0.5" value="3" />
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);">Monthly Silent Hallucinations Caught</div>
+          <div class="stat" id="out-caught">684 / mo</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="comparison">MCP Guard Kit vs Alternatives (2026 Comparison)</h2>
+    <table>
+      <thead>
+        <tr><th>Tool</th><th>Pricing</th><th>Offline / Zero-Dep CI</th><th>Silent 200 &amp; Partial Fault Chaos</th><th>Anti-Hallucination Verifier</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>MCP Guard Kit</b></td><td><b>Free MIT / $29 Pro</b></td><td>Yes (100% local Python)</td><td>Yes (8 built-in + 24 Pro)</td><td>Yes (evidence-backed)</td></tr>
+        <tr><td>LangSmith</td><td>$39+/seat/mo</td><td>No (Cloud SaaS)</td><td>Manual setup</td><td>LLM-as-judge (costly)</td></tr>
+        <tr><td>Promptfoo</td><td>Open-source / Cloud</td><td>Node.js required</td><td>Prompt eval focus</td><td>Regex / LLM rubric</td></tr>
+        <tr><td>Manual Pytest Mocks</td><td>Engineering hours</td><td>Yes</td><td>Ad-hoc per team</td><td>Easy to miss 200-errors</td></tr>
+      </tbody>
+    </table>
+
+    <div class="grid" id="pro-pack">
+      <div class="card">
+        <h3>Open-Core CLI — $0 (MIT)</h3>
+        <p>8 core MCP fault injectors, evidence-backed anti-hallucination verifier, Markdown &amp; HTML audit report CLI, full pytest suite.</p>
+      </div>
+      <div class="card">
+        <h3>Pro Automation Pack — $29 (One-Time)</h3>
+        <p>24 real-world chaos scenarios (Stripe, GitHub, Postgres, Slack, Playwright MCP), GitHub Actions PR blocking gates, executive HTML templates &amp; commercial license.</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    const c = document.getElementById('in-calls'), r = document.getElementById('in-rate');
+    const upd = () => {
+      const calls = Number(c.value), rate = Number(r.value);
+      document.getElementById('lbl-calls').textContent = calls.toLocaleString();
+      document.getElementById('lbl-rate').textContent = rate.toFixed(1) + '%';
+      const caught = Math.round(calls * 30 * (rate / 100) * 0.38);
+      document.getElementById('out-caught').textContent = caught.toLocaleString() + ' / mo';
+    };
+    c.oninput = upd; r.oninput = upd; upd();
+  </script>
+</body>
+</html>
