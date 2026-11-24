@@ -64,9 +64,12 @@ async function start(env, body, legacy = false) {
   const email = String(body.email || "").trim();
   if (!UUID.test(body.visit) || !UUID.test(body.access) ||
       email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    return json({ error: "A valid visit and email are required" }, 400);
-  if (!await db.prepare("SELECT id FROM visits WHERE id=?").bind(body.visit).first())
-    return json({ error: "Unknown visit" }, 404);
+    return json({ error: "Please enter a valid delivery email address." }, 400);
+  if (!await db.prepare("SELECT id FROM visits WHERE id=?").bind(body.visit).first()) {
+    const fallbackRef = typeof body.radar_ref === "string" && RADAR.test(body.radar_ref) ? body.radar_ref : "";
+    await db.prepare("INSERT OR IGNORE INTO visits(id,radar_ref,variant,created_at,exploration) VALUES(?,?,?,?,1)")
+      .bind(body.visit, fallbackRef, "control", Date.now()).run();
+  }
   const hash = await digest(body.access);
   const price = Number(env.PRICE_MICROS ?? 3250000);
   if (!Number.isSafeInteger(price) || price < 10000 || price % 10000 || !REFERENCE.test(env.MERCHANT_WALLET))

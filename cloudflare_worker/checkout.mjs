@@ -1,17 +1,238 @@
 function buyerCheckout() {
   const find = id => document.getElementById(id);
   const storage = localStorage;
+  const cfg = document.body.dataset;
+  const amountLabel = cfg.amount || "3.25";
+  const senderEmail = cfg.sender || "orders@mail.staai.click";
+  const replyEmail = cfg.replyTo || senderEmail;
+  const merchantWallet = cfg.wallet || "";
   const ref = new URL(location.href).searchParams.get("radar_ref") || "";
   const key = "mcp-pro-receipt:" + ref;
   const fragment = new URLSearchParams(location.hash.slice(1));
-  let receipt = JSON.parse(storage.getItem(key) || "null") || {
-    id: crypto.randomUUID(), access: crypto.randomUUID()
-  };
+
+  function loadStored() {
+    try {
+      const parsed = JSON.parse(storage.getItem(key) || "null");
+      if (parsed && typeof parsed === "object" && typeof parsed.id === "string" && typeof parsed.access === "string") {
+        return parsed;
+      }
+    } catch {}
+    return { id: crypto.randomUUID(), access: crypto.randomUUID() };
+  }
+
+  let receipt = loadStored();
   if (fragment.get("order") && fragment.get("access")) {
     receipt = { ...receipt, reference: fragment.get("order"), access: fragment.get("access") };
   }
+
   let pollTimer = null;
   let pollRemaining = 0;
+  let variantKind = "control";
+  let currentLang = (() => {
+    try {
+      const saved = storage.getItem("mcp-pro-lang");
+      if (saved === "vi" || saved === "en") return saved;
+    } catch {}
+    return (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en";
+  })();
+
+  const I18N = {
+    en: {
+      backOverview: "← Product Overview",
+      netPill: "Solana Mainnet · 24/7 Auto-Delivery",
+      step1: "1. Enter Email",
+      step2: `2. Pay ${amountLabel} USDC`,
+      step3: "3. Instant Download",
+      eyebrow1: "One-Time License",
+      eyebrow2: "Instant ZIP Delivery",
+      priceNote: "· Solana SPL · 0% platform fee",
+      offerControl: "Run 24 reusable fault scenarios & live MCP chaos proxies across 5 integrations.",
+      offerCi: "Catch silent HTTP-200 & JSON-RPC tool failures before merging your next release.",
+      stat1Val: "96 / 96 Caught",
+      stat1Lbl: "120-trial fault benchmark (0 false alarms)",
+      stat2Val: "20 Files · Pure Python",
+      stat2Lbl: "Zero external deps · Python ≥ 3.10",
+      insideTitle: "What’s inside your release ZIP",
+      previewSummary: "Preview all 20 included files inside mcp-guard-kit-pro-v1.1.zip",
+      bootMsg: "Preparing your secure checkout session…",
+      retryBoot: "Retry session",
+      startTitle: "Step 1 · Enter Delivery Email",
+      startSub: "No account or sign-up needed. Just enter where we should send your receipt & 7-day backup ZIP link.",
+      guide1Title: "Enter email",
+      guide1Desc: "Gets your private receipt & download backup.",
+      guide2Title: `Scan QR (${amountLabel} USDC)`,
+      guide2Desc: "Use Phantom / Solflare / Backpack on Solana.",
+      guide3Title: "Instant ZIP unlock",
+      guide3Desc: "Unlocks right here in ~10s after finality.",
+      emailLabel: "Delivery & receipt email",
+      emailPlaceholder: "you@company.com",
+      emailHint: `Instant on-page download + backup link sent from ${senderEmail}. Never published on-chain.`,
+      createBtn: `Continue to ${amountLabel} USDC Payment →`,
+      creatingBtn: "Creating payment QR…",
+      microTrust: "Verified on-chain SPL finality · Bookmarkable private receipt · 5-min auto-reconcile safety net.",
+      receiptTitle: "Step 2 · Pay & Unlock Download",
+      badgePending: "Awaiting Payment",
+      badgePaid: "Confirmed · Paid",
+      receiptTip: "Tip: Bookmark this page URL privately. You can reopen it anytime to check status or regenerate a fresh 7-day download link.",
+      metaAmount: "Exact Amount",
+      metaNetwork: "Network & Token",
+      metaEmail: "Delivery Email",
+      metaRef: "Order Reference",
+      qrHead: "Recommended · Scan with Mobile Wallet (Auto-Unlocks ~10s)",
+      qrStep1: "1. Open Phantom, Solflare, or Backpack on your phone",
+      qrStep2: "2. Tap the Scan QR icon & scan this code",
+      qrStep3: `3. Approve exact ${amountLabel} USDC (Solana Mainnet)`,
+      pollActive: "Auto-checking Solana Mainnet every 10s…",
+      pollPaused: "Auto-check paused — click Check Payment Now anytime.",
+      payBtn: `Open in Solana Wallet App (${amountLabel} USDC) ↗`,
+      payBtnHint: "On desktop Chrome? Scan the QR above with your phone — or open the manual/exchange option below.",
+      copyUri: "Copy Solana Pay Link",
+      refreshBtn: "Check Payment Now",
+      confirmLabel: "Already paid via QR / Solana Pay link? Verify Tx immediately:",
+      sigPlaceholder: "Paste base58 Solana Tx signature (87–88 chars)...",
+      verifyBtn: "Verify Tx",
+      manualSummary: "Paying from Desktop extension or Binance / OKX (no QR scanner)?",
+      manualWarn: "Important: Plain manual transfers do not attach the Solana Pay order reference automatically, so auto-verify cannot match them. Follow the 2 steps below for private manual unlock:",
+      manualStep1: `1. Send exactly ${amountLabel} USDC on Solana (SPL) to:`,
+      manualStep2: "2. Click below to email your Tx signature + Order Reference for fast manual unlock:",
+      manualMailBtn: "Email Tx Signature for Manual Unlock ↗",
+      paidHead: "Payment Confirmed on Solana Mainnet!",
+      paidMailSent: `Receipt & 7-day backup link sent via ${senderEmail}.`,
+      paidMailQueued: "Your instant download is active below; backup email delivery is queued.",
+      downloadBtn: "Download mcp-guard-kit-pro-v1.1.zip ↓",
+      copyReceipt: "Copy Private Receipt Link",
+      paidNote: "Signed URL expires in 7 days — reopen this bookmarked receipt anytime to issue a fresh link.",
+      faqTitle: "Quick Help & Buyer FAQ",
+      faq1Q: "Which token and network must I send?",
+      faq1A: `Send exactly ${amountLabel} USDC (SPL token on Solana Mainnet). Network gas is under $0.001 in SOL. Do not send ERC-20 / BEP-20 USDC.`,
+      faq2Q: "What if I close this tab after paying?",
+      faq2A: `No problem. Our 5-minute background job detects your finalized Solana Pay transfer and emails your download link from ${senderEmail}. You can also reopen your bookmarked URL.`,
+      faq3Q: "Sent manually without scanning the QR code?",
+      faq3A: `Open the "Desktop extension / Binance / OKX" drawer above or email ${replyEmail} with your Tx signature and Order Reference — we will unlock your download privately.`,
+      footNote: "Verified Solana Mainnet USDC checkout",
+      newOrder: "Change email / New order",
+      statusWaiting: `Waiting for finalized ${amountLabel} USDC transfer. Scan the QR code above with Phantom / Solflare to unlock automatically.`,
+      statusPendingTx: "Transaction found or propagating — waiting for Solana finalized confirmation. Check again in 5–10s.",
+      statusPaidEmail: "Payment confirmed! Your ZIP is unlocked below and backup email was accepted.",
+      statusPaidLocal: "Payment confirmed! Click the green Download button below to get your ZIP.",
+      statusInvalidEmail: "Please enter a valid email address (for example: name@domain.com).",
+      statusMismatch: "This Tx signature did not match this order’s Solana Pay reference or exact 3.25 USDC amount. If you sent manually without scanning the QR, use the manual unlock email button below.",
+      copied: "Copied ✓",
+      copiedUri: "Copied Solana Pay Link ✓",
+      copiedReceipt: "Copied Receipt Link ✓",
+      clipboardErr: "Clipboard access blocked — please select and copy manually.",
+      emailPrivate: "Saved privately with order"
+    },
+    vi: {
+      backOverview: "← Trang Giới Thiệu",
+      netPill: "Solana Mainnet · Giao Hàng Tự Động 24/7",
+      step1: "1. Nhập Email",
+      step2: `2. Trả ${amountLabel} USDC`,
+      step3: "3. Tải ZIP Ngay",
+      eyebrow1: "Bản Quyền 1 Lần",
+      eyebrow2: "Tải Xuống Ngay Lập Tức",
+      priceNote: "· Mạng Solana (SPL) · 0% phí sàn",
+      offerControl: "Chạy 24 kịch bản lỗi thực chiến & proxy MCP chaos trực tiếp trên 5 hệ sinh thái.",
+      offerCi: "Chặn lỗi HTTP-200 ngầm & JSON-RPC ảo giác trước khi merge bản phát hành tiếp theo.",
+      stat1Val: "Bắt 96 / 96 Lỗi",
+      stat1Lbl: "Benchmark 120 ca (0 báo động giả)",
+      stat2Val: "20 File · Python Thuần",
+      stat2Lbl: "0 thư viện ngoài · Python ≥ 3.10",
+      insideTitle: "Bên trong gói ZIP Pro v1.1 có gì",
+      previewSummary: "Xem trước toàn bộ 20 file trong mcp-guard-kit-pro-v1.1.zip",
+      bootMsg: "Đang khởi tạo phiên thanh toán an toàn…",
+      retryBoot: "Thử lại",
+      startTitle: "Bước 1 · Nhập Email Nhận Sản Phẩm",
+      startSub: "Không cần tạo tài khoản. Nhập email của bạn để nhận biên lai riêng & link tải ZIP dự phòng (hiệu lực 7 ngày).",
+      guide1Title: "Nhập email",
+      guide1Desc: "Nhận biên lai & link tải dự phòng.",
+      guide2Title: `Quét QR (${amountLabel} USDC)`,
+      guide2Desc: "Dùng app Phantom / Solflare / Backpack.",
+      guide3Title: "Mở khóa tải ngay",
+      guide3Desc: "Tự hiện nút tải sau ~10 giây chốt block.",
+      emailLabel: "Email nhận file & biên lai",
+      emailPlaceholder: "ban@congty.com",
+      emailHint: `Link tải mở trực tiếp trên trang này + gửi bản sao từ ${senderEmail}. Email không ghi lên blockchain.`,
+      createBtn: `Tiếp tục sang Thanh toán ${amountLabel} USDC →`,
+      creatingBtn: "Đang tạo mã QR thanh toán…",
+      microTrust: "Xác thực finalized trực tiếp trên Solana · Lưu bookmark để tải lại bất cứ lúc nào · Tự đối soát nền mỗi 5 phút.",
+      receiptTitle: "Bước 2 · Thanh Toán & Mở Khóa File",
+      badgePending: "Chờ Thanh Toán",
+      badgePaid: "Đã Xác Nhận · Hoàn Tất",
+      receiptTip: "Mẹo: Đánh dấu (Bookmark) đường dẫn trang này để mở lại biên lai hoặc tạo link tải mới 7 ngày bất kỳ lúc nào.",
+      metaAmount: "Số Tiền Chính Xác",
+      metaNetwork: "Mạng & Token",
+      metaEmail: "Email Nhận File",
+      metaRef: "Mã Đơn (Reference)",
+      qrHead: "Khuyên Dùng · Quét Mã QR Bằng App Ví (Tự Mở Khóa ~10s)",
+      qrStep1: "1. Mở app Phantom, Solflare hoặc Backpack trên điện thoại",
+      qrStep2: "2. Chọn nút Quét QR và đưa camera vào mã bên cạnh",
+      qrStep3: `3. Xác nhận gửi đúng ${amountLabel} USDC (mạng Solana Mainnet)`,
+      pollActive: "Đang tự kiểm tra Solana Mainnet mỗi 10 giây…",
+      pollPaused: "Đã tạm dừng tự kiểm tra — bấm Kiểm Tra Ngay bất kỳ lúc nào.",
+      payBtn: `Mở App Ví Solana (${amountLabel} USDC) ↗`,
+      payBtnHint: "Đang dùng máy tính (Chrome)? Hãy quét mã QR bằng điện thoại — hoặc mở mục chuyển thủ công/sàn bên dưới.",
+      copyUri: "Sao Chép Link Solana Pay",
+      refreshBtn: "Kiểm Tra Giao Dịch Ngay",
+      confirmLabel: "Đã quét QR chuyển xong và muốn mở khóa ngay? Dán mã giao dịch (Tx Signature):",
+      sigPlaceholder: "Dán chuỗi base58 Solana Tx signature...",
+      verifyBtn: "Xác Minh Tx",
+      manualSummary: "Chuyển bằng Extension máy tính hoặc sàn Binance / OKX (không quét QR)?",
+      manualWarn: "Lưu ý quan trọng: Chuyển thường từ ví máy tính/sàn sẽ không tự đính kèm mã Reference của Solana Pay nên hệ thống tự động không khớp được. Làm theo 2 bước dưới đây để được mở khóa riêng:",
+      manualStep1: `1. Chuyển đúng ${amountLabel} USDC qua mạng Solana (SPL) tới ví:`,
+      manualStep2: "2. Bấm nút bên dưới để gửi Email kèm mã Tx + Mã Đơn cho bộ phận hỗ trợ mở khóa:",
+      manualMailBtn: "Gửi Email Mã Tx Để Mở Khóa Thủ Công ↗",
+      paidHead: "Thanh Toán Đã Xác Nhận Trên Solana Mainnet!",
+      paidMailSent: `Biên lai & link tải dự phòng 7 ngày đã gửi từ ${senderEmail}.`,
+      paidMailQueued: "Nút tải trực tiếp đã sẵn sàng bên dưới; email dự phòng đang được gửi.",
+      downloadBtn: "Tải Xuống mcp-guard-kit-pro-v1.1.zip ↓",
+      copyReceipt: "Sao Chép Link Biên Lai Riêng",
+      paidNote: "Link tải có chữ ký bảo mật hiệu lực 7 ngày — mở lại bookmark trang này để tạo link mới bất cứ lúc nào.",
+      faqTitle: "Hướng Dẫn Nhanh & Câu Hỏi Thường Gặp",
+      faq1Q: "Cần gửi đúng token và mạng nào?",
+      faq1A: `Gửi đúng ${amountLabel} USDC chuẩn SPL trên mạng Solana Mainnet (phí gas SOL dưới $0.001). Không gửi nhầm mạng Ethereum (ERC-20) hoặc BSC (BEP-20).`,
+      faq2Q: "Lỡ tắt trình duyệt sau khi chuyển tiền thì sao?",
+      faq2A: `Không sao cả. Hệ thống tự quét nền mỗi 5 phút sẽ phát hiện giao dịch Solana Pay đã chốt và gửi thẳng link tải về email từ ${senderEmail}. Bạn cũng có thể mở lại link đã bookmark.`,
+      faq3Q: "Đã chuyển tay từ sàn/extension mà quên quét QR?",
+      faq3A: `Mở mục "Chuyển bằng Extension / Binance / OKX" ở trên hoặc gửi email tới ${replyEmail} kèm mã Tx và Mã Đơn — bạn sẽ nhận link tải riêng nhanh chóng.`,
+      footNote: "Cổng thanh toán USDC Solana Mainnet xác thực trực tiếp",
+      newOrder: "Đổi email / Tạo đơn mới",
+      statusWaiting: `Đang chờ giao dịch ${amountLabel} USDC chốt block. Quét mã QR phía trên bằng ví Phantom / Solflare để hệ thống tự mở khóa.`,
+      statusPendingTx: "Giao dịch đang chờ chốt block finalized trên Solana. Vui lòng thử lại sau 5–10 giây.",
+      statusPaidEmail: "Đã xác nhận thanh toán! Nút tải ZIP đã mở bên dưới và email dự phòng đã gửi.",
+      statusPaidLocal: "Đã xác nhận thanh toán! Bấm nút Tải Xuống màu xanh bên dưới để nhận file ZIP.",
+      statusInvalidEmail: "Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ten@domain.com).",
+      statusMismatch: "Mã Tx chưa khớp với mã Reference Solana Pay của đơn này hoặc chưa đủ 3.25 USDC. Nếu bạn chuyển tay không quét QR, hãy bấm nút Gửi Email Mở Khóa Thủ Công ngay bên dưới.",
+      copied: "Đã chép ✓",
+      copiedUri: "Đã chép Link Solana Pay ✓",
+      copiedReceipt: "Đã chép Link Biên Lai ✓",
+      clipboardErr: "Trình duyệt chặn copy tự động — vui lòng bôi đen và copy thủ công.",
+      emailPrivate: "Đã lưu riêng theo đơn"
+    }
+  };
+
+  const t = k => (I18N[currentLang] && I18N[currentLang][k]) || I18N.en[k] || k;
+
+  function applyLang(lang) {
+    currentLang = lang === "vi" ? "vi" : "en";
+    try { storage.setItem("mcp-pro-lang", currentLang); } catch {}
+    document.documentElement.lang = currentLang;
+    document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+      btn.dataset.active = btn.dataset.langBtn === currentLang ? "1" : "0";
+    });
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.dataset.i18n;
+      if (k && t(k)) el.textContent = t(k);
+    });
+    const emailInput = find("email");
+    if (emailInput) emailInput.placeholder = t("emailPlaceholder");
+    const sigInput = find("signature");
+    if (sigInput) sigInput.placeholder = t("sigPlaceholder");
+    const offerEl = find("offer");
+    if (offerEl) offerEl.textContent = variantKind === "ci" ? t("offerCi") : t("offerControl");
+    if (!receipt.email && find("order-email")) find("order-email").textContent = t("emailPrivate");
+    updateManualMailLink();
+  }
 
   function makeQrSvg(text) {
     const bytes = Array.from(new TextEncoder().encode(text));
@@ -193,7 +414,7 @@ function buyerCheckout() {
     const svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", `0 0 ${total} ${total}`);
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "Solana Pay QR Code for 3.25 USDC");
+    svg.setAttribute("aria-label", `Solana Pay QR Code for ${amountLabel} USDC`);
     svg.setAttribute("shape-rendering", "crispEdges");
     const bg = document.createElementNS(ns, "rect");
     bg.setAttribute("width", String(total));
@@ -225,7 +446,9 @@ function buyerCheckout() {
     return val && val.length > 14 ? val.slice(0, 6) + "…" + val.slice(-6) : (val || "—");
   }
 
-  function save() { storage.setItem(key, JSON.stringify(receipt)); }
+  function save() {
+    try { storage.setItem(key, JSON.stringify(receipt)); } catch {}
+  }
 
   function stopPoll() {
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
@@ -238,7 +461,7 @@ function buyerCheckout() {
       if (document.hidden || !receipt.reference) return;
       if (pollRemaining-- <= 0) {
         stopPoll();
-        find("poll-hint").textContent = "Auto-check paused — click Check On-Chain Now anytime.";
+        find("poll-hint").textContent = t("pollPaused");
         return;
       }
       try { await status(); } catch {}
@@ -254,7 +477,20 @@ function buyerCheckout() {
     box.replaceChildren(svg);
   }
 
-  function bindCopy(btnId, getText, label) {
+  function updateManualMailLink() {
+    const el = find("manual-mail");
+    if (!el) return;
+    const sigVal = (find("signature")?.value || "").trim();
+    const subject = encodeURIComponent(`MCP Guard Pro v1.1 Manual Unlock (${amountLabel} USDC)`);
+    const body = encodeURIComponent(
+      `Order Reference: ${receipt.reference || "N/A"}\n` +
+      `Delivery Email: ${receipt.email || ""}\n` +
+      `Solana Tx Signature: ${sigVal || "<paste your Tx signature here>"}\n`
+    );
+    el.href = `mailto:${replyEmail}?subject=${subject}&body=${body}`;
+  }
+
+  function bindCopy(btnId, getText, labelKey) {
     const btn = find(btnId);
     if (!btn) return;
     btn.addEventListener("click", async () => {
@@ -263,10 +499,10 @@ function buyerCheckout() {
       const orig = btn.textContent;
       try {
         await navigator.clipboard.writeText(value);
-        btn.textContent = label || "Copied ✓";
+        btn.textContent = t(labelKey || "copied");
         setTimeout(() => { btn.textContent = orig; }, 1800);
       } catch {
-        setStatus("Clipboard access blocked — please select and copy manually.", "warn");
+        setStatus(t("clipboardErr"), "warn");
       }
     });
   }
@@ -288,8 +524,12 @@ function buyerCheckout() {
     const response = await fetch("/api/" + path, {
       method: "POST", headers, body: JSON.stringify(body), cache: "no-store"
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Payment did not match this order.");
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const err = new Error(result.error || "Request failed. Please retry.");
+      err.status = response.status;
+      throw err;
+    }
     return result;
   }
 
@@ -301,16 +541,17 @@ function buyerCheckout() {
     const hash = new URLSearchParams({ order: receipt.reference, access: receipt.access });
     history.replaceState(null, "", location.pathname + location.search + "#" + hash);
     find("ref-val").textContent = maskKey(receipt.reference);
-    find("order-email").textContent = receipt.email || "Saved privately with order";
+    find("order-email").textContent = receipt.email || t("emailPrivate");
     if (receipt.payment_url) {
       find("pay").href = receipt.payment_url;
       find("pay").hidden = false;
       try {
         const w = new URL(receipt.payment_url).pathname;
-        if (w) find("wallet-val").textContent = maskKey(w);
+        if (w) find("manual-wallet").textContent = w;
       } catch {}
       renderQr(receipt.payment_url);
     }
+    updateManualMailLink();
   }
 
   async function status() {
@@ -326,33 +567,29 @@ function buyerCheckout() {
       find("confirm").hidden = true;
       const badge = find("state-badge");
       badge.dataset.state = "paid";
-      badge.textContent = "Confirmed · Paid";
-      find("paid-mail-note").textContent = result.email_accepted
-        ? "Receipt & 7-day backup link sent via orders@mail.staai.click."
-        : "Your instant download is active below; backup email delivery is queued.";
-      setStatus(result.email_accepted
-        ? "Payment confirmed. Email accepted for delivery."
-        : "Payment confirmed. Your download is ready here.", "ok");
+      badge.textContent = t("badgePaid");
+      find("paid-mail-note").textContent = result.email_accepted ? t("paidMailSent") : t("paidMailQueued");
+      setStatus(result.email_accepted ? t("statusPaidEmail") : t("statusPaidLocal"), "ok");
     } else {
       find("paid-zone").hidden = true;
       find("pay-zone").hidden = false;
       find("confirm").hidden = false;
       const badge = find("state-badge");
       badge.dataset.state = "pending";
-      badge.textContent = "Awaiting Payment";
+      badge.textContent = t("badgePending");
       if (result.payment_url) {
         receipt.payment_url = result.payment_url;
         find("pay").href = result.payment_url;
         find("pay").hidden = false;
         try {
           const w = new URL(result.payment_url).pathname;
-          if (w) find("wallet-val").textContent = maskKey(w);
+          if (w) find("manual-wallet").textContent = w;
         } catch {}
         renderQr(result.payment_url);
       }
-      find("poll-hint").textContent = "Listening on Solana Mainnet (checks every 10s)…";
+      find("poll-hint").textContent = t("pollActive");
       startPoll();
-      setStatus("Waiting for a finalized payment. Pay once using this order’s wallet link or QR.", "warn");
+      setStatus(t("statusWaiting"), "warn");
     }
   }
 
@@ -360,12 +597,26 @@ function buyerCheckout() {
     find("boot").hidden = false;
     find("retry-boot").hidden = true;
     try {
-      if (receipt.reference) { showOrder(); await status(); return; }
+      if (receipt.reference) {
+        showOrder();
+        try {
+          await status();
+          return;
+        } catch (err) {
+          if (err.status === 403 || err.status === 404) {
+            receipt = { id: crypto.randomUUID(), access: crypto.randomUUID() };
+            save();
+            history.replaceState(null, "", location.pathname + location.search);
+            find("receipt").hidden = true;
+          } else {
+            throw err;
+          }
+        }
+      }
       setStep(1);
       const visit = await api("visit", { id: receipt.id, radar_ref: ref });
-      find("offer").textContent = visit.variant === "ci" ?
-        "Catch a failed tool call before merging your next release." :
-        "Run 24 reusable fault scenarios across five MCP integrations.";
+      variantKind = visit.variant === "ci" ? "ci" : "control";
+      find("offer").textContent = variantKind === "ci" ? t("offerCi") : t("offerControl");
       save();
       find("boot").hidden = true;
       find("begin").hidden = false;
@@ -379,13 +630,36 @@ function buyerCheckout() {
 
   find("begin").addEventListener("submit", protect(async () => {
     const emailVal = find("email").value.trim();
-    const order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal });
-    receipt.email = emailVal;
-    receipt.reference = order.reference;
-    receipt.payment_url = order.payment_url;
-    save();
-    showOrder();
-    await status();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      setStatus(t("statusInvalidEmail"), "err");
+      return;
+    }
+    const btn = find("create-btn");
+    const prevTxt = btn.textContent;
+    btn.textContent = t("creatingBtn");
+    try {
+      let order;
+      try {
+        order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal, radar_ref: ref });
+      } catch (err) {
+        if (err.status === 404 || err.status === 409) {
+          // Self-heal stale visit session seamlessly without ever stranding a buyer
+          receipt = { id: crypto.randomUUID(), access: crypto.randomUUID() };
+          await api("visit", { id: receipt.id, radar_ref: ref });
+          order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal, radar_ref: ref });
+        } else {
+          throw err;
+        }
+      }
+      receipt.email = emailVal;
+      receipt.reference = order.reference;
+      receipt.payment_url = order.payment_url;
+      save();
+      showOrder();
+      await status();
+    } finally {
+      btn.textContent = prevTxt;
+    }
   }));
 
   find("refresh").addEventListener("click", protect(async () => {
@@ -395,14 +669,26 @@ function buyerCheckout() {
 
   find("confirm").addEventListener("submit", protect(async () => {
     const sig = find("signature").value.trim();
-    const result = await api("confirm", { reference: receipt.reference, signature: sig }, true);
-    if (result.state === "pending") {
-      setStatus("The transaction has not finalized yet. Check again in a few seconds.", "warn");
-    } else {
-      await status();
+    updateManualMailLink();
+    try {
+      const result = await api("confirm", { reference: receipt.reference, signature: sig }, true);
+      if (result.state === "pending") {
+        setStatus(t("statusPendingTx"), "warn");
+      } else {
+        await status();
+      }
+    } catch (err) {
+      if (err.status === 422) {
+        setStatus(t("statusMismatch"), "err");
+        const man = find("manual-drawer");
+        if (man) man.open = true;
+      } else {
+        throw err;
+      }
     }
   }));
 
+  find("signature")?.addEventListener("input", updateManualMailLink);
   find("retry-boot").addEventListener("click", protect(begin));
 
   find("new-order").addEventListener("click", protect(async () => {
@@ -418,13 +704,19 @@ function buyerCheckout() {
     await begin();
   }));
 
-  bindCopy("copy-ref", () => receipt.reference, "Copied ✓");
-  bindCopy("copy-wallet", () => {
-    try { return receipt.payment_url ? new URL(receipt.payment_url).pathname : ""; } catch { return ""; }
-  }, "Copied ✓");
-  bindCopy("copy-uri", () => receipt.payment_url, "Copied Solana Pay URI ✓");
-  bindCopy("copy-receipt", () => location.href, "Copied Receipt Link ✓");
+  document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+    btn.addEventListener("click", () => applyLang(btn.dataset.langBtn));
+  });
 
+  bindCopy("copy-ref", () => receipt.reference, "copied");
+  bindCopy("copy-manual-wallet", () => {
+    try { return (receipt.payment_url ? new URL(receipt.payment_url).pathname : merchantWallet); } catch { return merchantWallet; }
+  }, "copied");
+  bindCopy("copy-manual-ref", () => receipt.reference, "copied");
+  bindCopy("copy-uri", () => receipt.payment_url, "copiedUri");
+  bindCopy("copy-receipt", () => location.href, "copiedReceipt");
+
+  applyLang(currentLang);
   protect(begin)();
 }
 
@@ -453,11 +745,10 @@ export function checkoutPage(amount, opts = {}) {
 <style nonce="${nonce}">
   :root {
     --bg: #060a13;
-    --panel: rgba(15, 23, 42, 0.88);
-    --panel-solid: #0f172a;
+    --panel: rgba(15, 23, 42, 0.90);
     --panel-2: #09101f;
     --border: rgba(148, 163, 184, 0.16);
-    --border-hi: rgba(56, 189, 248, 0.35);
+    --border-hi: rgba(56, 189, 248, 0.38);
     --text: #f1f5f9;
     --muted: #94a3b8;
     --soft: #cbd5e1;
@@ -475,7 +766,7 @@ export function checkoutPage(amount, opts = {}) {
     color: var(--text);
     background:
       radial-gradient(ellipse 80% 55% at 20% -10%, rgba(14, 165, 233, 0.16), transparent 60%),
-      radial-gradient(ellipse 65% 50% at 95% 100%, rgba(16, 185, 129, 0.12), transparent 60%),
+      radial-gradient(ellipse 65% 50% at 95% 100%, rgba(16, 185, 129, 0.13), transparent 60%),
       linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px),
       var(--bg);
@@ -486,11 +777,11 @@ export function checkoutPage(amount, opts = {}) {
   a { color: inherit; }
   code { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
   [hidden] { display: none !important; }
-  .shell { max-width: 1040px; margin: 0 auto; padding: 28px 20px 64px; }
+  .shell { max-width: 1080px; margin: 0 auto; padding: 26px 20px 64px; }
 
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 14px; flex-wrap: wrap; margin-bottom: 24px;
+    gap: 14px; flex-wrap: wrap; margin-bottom: 22px;
   }
   .brand {
     display: inline-flex; align-items: center; gap: 10px;
@@ -508,6 +799,15 @@ export function checkoutPage(amount, opts = {}) {
     background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.38); color: var(--mint);
   }
   .top-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lang-switch {
+    display: inline-flex; border-radius: 9px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--panel-2);
+  }
+  .lang-btn {
+    border: none; background: transparent; color: var(--muted); font: inherit;
+    font-size: 12px; font-weight: 700; padding: 5px 10px; cursor: pointer;
+  }
+  .lang-btn[data-active="1"] { background: rgba(56, 189, 248, 0.18); color: #e0f2fe; }
   .net-pill {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
@@ -526,8 +826,8 @@ export function checkoutPage(amount, opts = {}) {
 
   .stepper {
     display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 10px;
-    background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border);
-    border-radius: 14px; padding: 12px 18px; margin-bottom: 24px;
+    background: rgba(15, 23, 42, 0.72); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 18px; margin-bottom: 22px;
     backdrop-filter: blur(10px);
   }
   .step { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
@@ -547,7 +847,7 @@ export function checkoutPage(amount, opts = {}) {
   }
   .step-line { height: 1px; width: 28px; background: var(--border); }
 
-  .layout { display: grid; grid-template-columns: minmax(0, 1.03fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+  .layout { display: grid; grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.08fr); gap: 22px; align-items: start; }
   .card {
     background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 24px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 60px rgba(0, 0, 0, 0.45);
@@ -561,7 +861,7 @@ export function checkoutPage(amount, opts = {}) {
     background: var(--panel-2);
   }
   .eyebrow.cyan { border-color: rgba(56, 189, 248, 0.35); color: #7dd3fc; background: rgba(56, 189, 248, 0.08); }
-  h1 { margin: 0 0 10px; font-size: 24px; letter-spacing: -0.02em; line-height: 1.25; }
+  h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.02em; line-height: 1.25; }
   .price-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 4px 0 6px; }
   .price-num {
     font-size: 38px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
@@ -571,25 +871,35 @@ export function checkoutPage(amount, opts = {}) {
   .price-unit { font-size: 16px; font-weight: 700; color: var(--mint); }
   .price-note { font-size: 12.5px; color: var(--muted); }
   .offer-box {
-    margin: 14px 0 18px; padding: 11px 14px; border-radius: 10px;
+    margin: 12px 0 16px; padding: 11px 14px; border-radius: 10px;
     border-left: 3px solid var(--cyan); background: rgba(56, 189, 248, 0.07);
     font-size: 13.5px; color: #e0f2fe; font-weight: 500;
   }
-  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
   .stat-tile {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px;
   }
-  .stat-val { font-size: 17px; font-weight: 800; color: var(--mint); font-variant-numeric: tabular-nums; }
+  .stat-val { font-size: 16px; font-weight: 800; color: var(--mint); font-variant-numeric: tabular-nums; }
   .stat-lbl { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 
   .sec-title {
     font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
     color: var(--muted); margin: 0 0 10px;
   }
-  .feat-list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
+  .feat-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 9px; }
   .feat-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--soft); }
-  .feat-ic { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; color: var(--emerald); }
+  .feat-ic { width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; color: var(--emerald); }
   .feat-list b { color: var(--text); }
+
+  .zip-preview {
+    margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel-2); padding: 10px 12px; font-size: 12px;
+  }
+  .zip-preview summary { cursor: pointer; font-weight: 600; color: #7dd3fc; }
+  .zip-tree {
+    margin: 10px 0 0; padding: 10px; border-radius: 8px; background: #050811;
+    color: #93c5fd; font-size: 11.5px; overflow-x: auto; line-height: 1.5;
+  }
 
   .trust-foot {
     border-top: 1px solid var(--border); padding-top: 14px;
@@ -600,10 +910,24 @@ export function checkoutPage(amount, opts = {}) {
   .trust-link { color: #7dd3fc; text-decoration: none; font-weight: 600; }
   .trust-link:hover { text-decoration: underline; }
 
+  .mini-guide {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 18px;
+  }
+  .mini-step {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 11px; padding: 10px;
+  }
+  .mini-step-badge {
+    display: inline-block; font-size: 11px; font-weight: 800; color: #03121a;
+    background: linear-gradient(135deg, #38bdf8, #10b981); border-radius: 999px;
+    padding: 1px 7px; margin-bottom: 5px;
+  }
+  .mini-step-t { font-size: 12.5px; font-weight: 700; color: var(--text); }
+  .mini-step-d { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
   .console-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
   h2 { margin: 0; font-size: 19px; letter-spacing: -0.015em; }
   .console-sub { margin: 0 0 16px; font-size: 13.5px; color: var(--muted); }
-  .field-lbl { display: block; font-size: 12.5px; font-weight: 600; color: var(--soft); margin-bottom: 7px; }
+  .field-lbl { display: block; font-size: 12.5px; font-weight: 700; color: var(--soft); margin-bottom: 7px; }
   .input-box {
     width: 100%; padding: 12px 14px; border-radius: 10px;
     border: 1px solid #283652; background: #070d1a; color: var(--text);
@@ -676,30 +1000,48 @@ export function checkoutPage(amount, opts = {}) {
   .copy-mini:hover { border-color: var(--cyan); }
 
   .qr-panel {
-    display: grid; grid-template-columns: 166px 1fr; gap: 16px; align-items: center;
-    padding: 14px; border-radius: 14px; background: var(--panel-2);
-    border: 1px solid rgba(56, 189, 248, 0.25); margin-bottom: 14px;
+    display: grid; grid-template-columns: 184px 1fr; gap: 16px; align-items: center;
+    padding: 15px; border-radius: 14px; background: var(--panel-2);
+    border: 1px solid rgba(56, 189, 248, 0.32); margin-bottom: 12px;
   }
   .qr-frame {
-    width: 166px; height: 166px; border-radius: 12px; background: #ffffff; padding: 7px;
+    width: 184px; height: 184px; border-radius: 12px; background: #ffffff; padding: 8px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45); display: grid; place-items: center;
   }
   .qr-frame svg { width: 100%; height: 100%; display: block; }
-  .qr-title { font-size: 14px; font-weight: 700; color: var(--text); margin: 0 0 5px; }
-  .qr-desc { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  .qr-title { font-size: 13.5px; font-weight: 800; color: var(--mint); margin: 0 0 8px; }
+  .qr-steps { margin: 0 0 10px; padding: 0; list-style: none; display: grid; gap: 5px; font-size: 12.5px; color: var(--soft); }
   .poll-pill {
     display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600;
     color: #7dd3fc; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.24);
     border-radius: 8px; padding: 5px 9px;
   }
-  .action-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
+  .pay-hint { font-size: 11.5px; color: var(--muted); margin: 8px 0 10px; text-align: center; }
+  .action-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 
   .confirm-box {
-    margin-top: 15px; padding: 13px; border-radius: 12px;
+    margin-top: 14px; padding: 13px; border-radius: 12px;
     background: var(--panel-2); border: 1px dashed #2d3d5e;
   }
   .confirm-row { display: flex; gap: 8px; margin-top: 8px; }
   .confirm-row .input-box { padding: 9px 11px; }
+
+  .manual-drawer {
+    margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+    background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.28);
+    font-size: 12.5px;
+  }
+  .manual-drawer summary { cursor: pointer; font-weight: 700; color: #fcd34d; }
+  .manual-warn {
+    margin: 10px 0; padding: 9px 11px; border-radius: 8px;
+    background: rgba(245, 158, 11, 0.1); color: #fde68a; font-size: 12px; line-height: 1.45;
+  }
+  .manual-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: #060b16; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin: 6px 0 10px; font-size: 12px; overflow-wrap: anywhere;
+  }
+  .manual-row code { color: #a7f3d0; }
 
   .paid-card {
     padding: 16px; border-radius: 14px;
@@ -710,6 +1052,16 @@ export function checkoutPage(amount, opts = {}) {
   .paid-head svg { width: 22px; height: 22px; flex-shrink: 0; }
   .paid-sub { margin: 6px 0 4px; font-size: 13px; color: var(--soft); }
   .paid-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  .faq-box {
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
+  }
+  .faq-item {
+    border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2);
+    padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px;
+  }
+  .faq-item summary { cursor: pointer; font-weight: 600; color: var(--soft); }
+  .faq-item p { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
   .receipt-foot {
     margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);
@@ -737,19 +1089,19 @@ export function checkoutPage(amount, opts = {}) {
   .status-bar[data-tone="err"] { border-color: rgba(251, 113, 133, 0.42); background: rgba(251, 113, 133, 0.09); color: #fecdd3; }
   .status-bar[data-tone="err"] .s-dot { background: var(--rose); }
 
-  @media (max-width: 860px) {
+  @media (max-width: 880px) {
     .layout { grid-template-columns: 1fr; }
     .stepper { grid-template-columns: 1fr; gap: 8px; }
     .step-line { display: none; }
   }
-  @media (max-width: 520px) {
+  @media (max-width: 560px) {
     .qr-panel { grid-template-columns: 1fr; justify-items: center; text-align: center; }
-    .meta-grid, .action-row-2, .stats-row { grid-template-columns: 1fr; }
+    .meta-grid, .action-row-2, .stats-row, .mini-guide { grid-template-columns: 1fr; }
     .confirm-row { flex-direction: column; }
   }
 </style>
 </head>
-<body>
+<body data-amount="${esc(amountLabel)}" data-sender="${esc(sender)}" data-reply-to="${esc(replyTo)}" data-wallet="${esc(wallet)}">
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="https://thongtuehuu-cyber.github.io/mcp-guard-kit/" rel="noopener noreferrer">
@@ -763,45 +1115,49 @@ export function checkoutPage(amount, opts = {}) {
         <span class="pro-tag">Pro v1.1</span>
       </a>
       <div class="top-right">
-        <span class="net-pill"><span class="pulse-dot" aria-hidden="true"></span>Solana Mainnet · 24/7 Auto-Delivery</span>
-        <a class="back-link" href="https://thongtuehuu-cyber.github.io/mcp-guard-kit/" rel="noopener noreferrer">← Product Overview</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" class="lang-btn" data-lang-btn="en" data-active="1">EN</button>
+          <button type="button" class="lang-btn" data-lang-btn="vi" data-active="0">VI</button>
+        </div>
+        <span class="net-pill"><span class="pulse-dot" aria-hidden="true"></span><span data-i18n="netPill">Solana Mainnet · 24/7 Auto-Delivery</span></span>
+        <a class="back-link" href="https://thongtuehuu-cyber.github.io/mcp-guard-kit/" rel="noopener noreferrer" data-i18n="backOverview">← Product Overview</a>
       </div>
     </header>
 
     <nav class="stepper" aria-label="Checkout progress">
-      <div class="step" id="step-1" data-state="active"><span class="step-num">1</span><span>Order &amp; Receipt Email</span></div>
+      <div class="step" id="step-1" data-state="active"><span class="step-num">1</span><span data-i18n="step1">1. Enter Email</span></div>
       <div class="step-line" aria-hidden="true"></div>
-      <div class="step" id="step-2" data-state="pending"><span class="step-num">2</span><span>Pay ${amountLabel} USDC</span></div>
+      <div class="step" id="step-2" data-state="pending"><span class="step-num">2</span><span data-i18n="step2">2. Pay ${amountLabel} USDC</span></div>
       <div class="step-line" aria-hidden="true"></div>
-      <div class="step" id="step-3" data-state="pending"><span class="step-num">3</span><span>Instant ZIP + Email</span></div>
+      <div class="step" id="step-3" data-state="pending"><span class="step-num">3</span><span data-i18n="step3">3. Instant Download</span></div>
     </nav>
 
     <div class="layout">
       <aside class="card">
         <div class="eyebrows">
-          <span class="eyebrow cyan">One-Time License</span>
-          <span class="eyebrow">Instant Digital Download</span>
+          <span class="eyebrow cyan" data-i18n="eyebrow1">One-Time License</span>
+          <span class="eyebrow" data-i18n="eyebrow2">Instant ZIP Delivery</span>
         </div>
         <h1>MCP Guard Kit Pro v1.1</h1>
         <div class="price-row">
           <span class="price-num">${amountLabel}</span>
           <span class="price-unit">USDC</span>
-          <span class="price-note">· Solana SPL · 0% markup</span>
+          <span class="price-note" data-i18n="priceNote">· Solana SPL · 0% platform fee</span>
         </div>
-        <div class="offer-box" id="offer">One-time purchase on Solana mainnet.</div>
+        <div class="offer-box" id="offer">Run 24 reusable fault scenarios &amp; live MCP chaos proxies across 5 integrations.</div>
 
         <div class="stats-row">
           <div class="stat-tile">
-            <div class="stat-val">96 / 96 Caught</div>
-            <div class="stat-lbl">120-trial fault benchmark (0 false alarms)</div>
+            <div class="stat-val" data-i18n="stat1Val">96 / 96 Caught</div>
+            <div class="stat-lbl" data-i18n="stat1Lbl">120-trial fault benchmark (0 false alarms)</div>
           </div>
           <div class="stat-tile">
-            <div class="stat-val">20 Files · 43.9 KB</div>
-            <div class="stat-lbl">Pure Python ≥ 3.10 · zero deps</div>
+            <div class="stat-val" data-i18n="stat2Val">20 Files · Pure Python</div>
+            <div class="stat-lbl" data-i18n="stat2Lbl">Zero external deps · Python ≥ 3.10</div>
           </div>
         </div>
 
-        <div class="sec-title">What’s inside your release ZIP</div>
+        <div class="sec-title" data-i18n="insideTitle">What’s inside your release ZIP</div>
         <ul class="feat-list">
           <li>
             <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -809,11 +1165,11 @@ export function checkoutPage(amount, opts = {}) {
           </li>
           <li>
             <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>Live chaos proxies:</b> <code>proxy-stdio</code> (NDJSON / Content-Length) and <code>proxy-http</code> reverse proxy</span>
+            <span><b>Live chaos proxies:</b> <code>proxy-stdio</code> (NDJSON / Content-Length) &amp; <code>proxy-http</code> reverse proxy</span>
           </li>
           <li>
             <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>Native Pytest plugin:</b> <code>mcp_chaos</code>, <code>mcp_assert_honest</code> &amp; deterministic seed flags</span>
+            <span><b>Native Pytest plugin:</b> <code>mcp_chaos</code>, <code>mcp_assert_honest</code>, <code>mcp_stdio_proxy</code> &amp; <code>mcp_http_proxy</code></span>
           </li>
           <li>
             <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -824,6 +1180,22 @@ export function checkoutPage(amount, opts = {}) {
             <span><b>Perpetual commercial license</b> for unlimited internal, client &amp; CI/CD repositories</span>
           </li>
         </ul>
+
+        <details class="zip-preview">
+          <summary data-i18n="previewSummary">Preview all 20 included files inside mcp-guard-kit-pro-v1.1.zip</summary>
+          <pre class="zip-tree">mcp-guard-kit-pro-v1.1/
+├── pyproject.toml &amp; COMMERCIAL_LICENSE.md &amp; README.md
+├── ci_templates/mcp-guard-pr-gate.yml
+├── mcp_guard_pro/
+│   ├── scenarios.py      (24 Stripe/GitHub/PG/Slack/Playwright faults)
+│   ├── proxy.py          (Live Stdio &amp; HTTP MCP Chaos Proxies)
+│   ├── verifier.py       (Protocol-aware anti-hallucination engine)
+│   ├── pytest_plugin.py  (Drop-in pytest11 fixtures)
+│   ├── reports.py        (SARIF 2.1, JUnit XML, Executive HTML, MD)
+│   ├── benchmark.py      (120-trial Naive vs Pro benchmark)
+│   ├── cli.py, demo_server.py, fixtures.py, releases.py
+└── tests/ (test_pro_suite.py, test_release_regressions.py)</pre>
+        </details>
 
         <div class="trust-foot">
           <div class="trust-line"><span>Fulfillment mailer</span><code>${esc(sender)}</code></div>
@@ -841,50 +1213,69 @@ export function checkoutPage(amount, opts = {}) {
 
       <main class="card">
         <div id="boot" class="boot-box">
-          <div id="boot-msg">Initializing encrypted Solana Pay session…</div>
-          <button type="button" id="retry-boot" class="btn btn-outline" hidden>Retry session</button>
+          <div id="boot-msg" data-i18n="bootMsg">Preparing your secure checkout session…</div>
+          <button type="button" id="retry-boot" class="btn btn-outline" hidden data-i18n="retryBoot">Retry session</button>
         </div>
 
-        <form id="begin" hidden>
+        <form id="begin" hidden novalidate>
           <div class="console-head">
-            <h2>Start Your Order</h2>
+            <h2 data-i18n="startTitle">Step 1 · Enter Delivery Email</h2>
           </div>
-          <p class="console-sub">Lock a unique per-order Solana Pay reference and generate your scannable QR code &amp; private receipt.</p>
-          <label class="field-lbl" for="email">Delivery &amp; receipt email</label>
+          <p class="console-sub" data-i18n="startSub">No account or sign-up needed. Just enter where we should send your receipt &amp; 7-day backup ZIP link.</p>
+
+          <div class="mini-guide">
+            <div class="mini-step">
+              <span class="mini-step-badge">1</span>
+              <div class="mini-step-t" data-i18n="guide1Title">Enter email</div>
+              <div class="mini-step-d" data-i18n="guide1Desc">Gets your private receipt &amp; download backup.</div>
+            </div>
+            <div class="mini-step">
+              <span class="mini-step-badge">2</span>
+              <div class="mini-step-t" data-i18n="guide2Title">Scan QR (${amountLabel} USDC)</div>
+              <div class="mini-step-d" data-i18n="guide2Desc">Use Phantom / Solflare / Backpack on Solana.</div>
+            </div>
+            <div class="mini-step">
+              <span class="mini-step-badge">3</span>
+              <div class="mini-step-t" data-i18n="guide3Title">Instant ZIP unlock</div>
+              <div class="mini-step-d" data-i18n="guide3Desc">Unlocks right here in ~10s after finality.</div>
+            </div>
+          </div>
+
+          <label class="field-lbl" for="email" data-i18n="emailLabel">Delivery &amp; receipt email</label>
           <input id="email" class="input-box" type="email" autocomplete="email" maxlength="254" placeholder="you@company.com" required>
-          <p class="field-hint">Your 7-day signed download link will unlock immediately on-page after finality and be emailed from <code>${esc(sender)}</code>.</p>
-          <button type="submit" id="create-btn" class="btn btn-primary">
-            Generate ${amountLabel} USDC Payment Link →
+          <p class="field-hint" data-i18n="emailHint">Instant on-page download + backup link sent from ${esc(sender)}. Never published on-chain.</p>
+          <button type="submit" id="create-btn" class="btn btn-primary" data-i18n="createBtn">
+            Continue to ${amountLabel} USDC Payment →
           </button>
           <div class="micro-trust">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span>Finalized on-chain SPL verification · Bookmarkable recovery receipt · 5-min auto-reconcile fallback.</span>
+            <span data-i18n="microTrust">Verified on-chain SPL finality · Bookmarkable private receipt · 5-min auto-reconcile safety net.</span>
           </div>
         </form>
 
         <section id="receipt" hidden>
           <div class="console-head">
-            <h2>Private Order Receipt</h2>
+            <h2 data-i18n="receiptTitle">Step 2 · Pay &amp; Unlock Download</h2>
             <span class="state-badge" id="state-badge" data-state="pending">Awaiting Payment</span>
           </div>
-          <p class="receipt-tip">Bookmark this page URL privately to reopen your order or issue a fresh 7-day download link anytime. Anyone with the URL fragment can access this receipt.</p>
+          <p class="receipt-tip" data-i18n="receiptTip">Tip: Bookmark this page URL privately. You can reopen it anytime to check status or regenerate a fresh 7-day download link.</p>
 
           <div class="meta-grid">
             <div class="meta-item">
-              <div class="meta-k">Exact Amount</div>
+              <div class="meta-k" data-i18n="metaAmount">Exact Amount</div>
               <div class="meta-v"><span>${amountLabel} USDC</span><span class="eyebrow">SPL</span></div>
             </div>
             <div class="meta-item">
-              <div class="meta-k">Delivery Email</div>
+              <div class="meta-k" data-i18n="metaNetwork">Network &amp; Token</div>
+              <div class="meta-v"><span>Solana Mainnet</span></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-k" data-i18n="metaEmail">Delivery Email</div>
               <div class="meta-v"><span id="order-email">Saved privately</span></div>
             </div>
             <div class="meta-item">
-              <div class="meta-k">Order Reference</div>
+              <div class="meta-k" data-i18n="metaRef">Order Reference</div>
               <div class="meta-v"><code id="ref-val">—</code><button type="button" class="copy-mini" id="copy-ref">Copy</button></div>
-            </div>
-            <div class="meta-item">
-              <div class="meta-k">Recipient Wallet</div>
-              <div class="meta-v"><code id="wallet-val">${esc(walletShort)}</code><button type="button" class="copy-mini" id="copy-wallet">Copy</button></div>
             </div>
           </div>
 
@@ -892,47 +1283,83 @@ export function checkoutPage(amount, opts = {}) {
             <div class="qr-panel">
               <div class="qr-frame" id="qr-box" aria-label="Solana Pay QR Code"></div>
               <div>
-                <div class="qr-title">Scan or tap wallet to pay</div>
-                <p class="qr-desc">Embeds exact <b>${amountLabel} USDC</b> SPL transfer &amp; unique order reference for Phantom, Solflare, or Backpack.</p>
-                <div class="poll-pill" id="poll-hint">Listening on Solana Mainnet (checks every 10s)…</div>
+                <div class="qr-title" data-i18n="qrHead">Recommended · Scan with Mobile Wallet (Auto-Unlocks ~10s)</div>
+                <ul class="qr-steps">
+                  <li data-i18n="qrStep1">1. Open Phantom, Solflare, or Backpack on your phone</li>
+                  <li data-i18n="qrStep2">2. Tap the Scan QR icon &amp; scan this code</li>
+                  <li data-i18n="qrStep3">3. Approve exact ${amountLabel} USDC (Solana Mainnet)</li>
+                </ul>
+                <div class="poll-pill" id="poll-hint" data-i18n="pollActive">Auto-checking Solana Mainnet every 10s…</div>
               </div>
             </div>
 
-            <a class="btn btn-primary" id="pay" hidden>Pay ${amountLabel} USDC in Solana Wallet ↗</a>
+            <a class="btn btn-primary" id="pay" hidden data-i18n="payBtn">Open in Solana Wallet App (${amountLabel} USDC) ↗</a>
+            <div class="pay-hint" data-i18n="payBtnHint">On desktop Chrome? Scan the QR above with your phone — or open the manual/exchange option below.</div>
             <div class="action-row-2">
-              <button type="button" class="btn btn-secondary" id="copy-uri">Copy Solana Pay URI</button>
-              <button type="button" class="btn btn-secondary" id="refresh">Check On-Chain Now</button>
+              <button type="button" class="btn btn-secondary" id="copy-uri" data-i18n="copyUri">Copy Solana Pay Link</button>
+              <button type="button" class="btn btn-secondary" id="refresh" data-i18n="refreshBtn">Check Payment Now</button>
             </div>
 
             <form id="confirm" class="confirm-box">
-              <label class="field-lbl" for="signature">Already approved the Solana Pay transaction? Verify Tx signature directly:</label>
+              <label class="field-lbl" for="signature" data-i18n="confirmLabel">Already paid via QR / Solana Pay link? Verify Tx immediately:</label>
               <div class="confirm-row">
-                <input id="signature" class="input-box input-mono" maxlength="100" placeholder="Paste base58 Tx signature..." required>
-                <button type="submit" class="btn btn-outline">Verify Tx</button>
+                <input id="signature" class="input-box input-mono" maxlength="100" placeholder="Paste base58 Solana Tx signature..." required>
+                <button type="submit" class="btn btn-outline" data-i18n="verifyBtn">Verify Tx</button>
               </div>
             </form>
+
+            <details class="manual-drawer" id="manual-drawer">
+              <summary data-i18n="manualSummary">Paying from Desktop extension or Binance / OKX (no QR scanner)?</summary>
+              <div class="manual-warn" data-i18n="manualWarn">Important: Plain manual transfers do not attach the Solana Pay order reference automatically, so auto-verify cannot match them. Follow the 2 steps below for private manual unlock:</div>
+              <div style="font-weight:600;color:#e2e8f0;" data-i18n="manualStep1">1. Send exactly ${amountLabel} USDC on Solana (SPL) to:</div>
+              <div class="manual-row">
+                <code id="manual-wallet">${esc(wallet)}</code>
+                <button type="button" class="copy-mini" id="copy-manual-wallet">Copy</button>
+              </div>
+              <div style="font-weight:600;color:#e2e8f0;margin-bottom:8px;" data-i18n="manualStep2">2. Click below to email your Tx signature + Order Reference for fast manual unlock:</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a class="btn btn-secondary" id="manual-mail" href="mailto:${esc(replyTo)}" data-i18n="manualMailBtn">Email Tx Signature for Manual Unlock ↗</a>
+                <button type="button" class="btn btn-outline" id="copy-manual-ref">Copy Order Ref</button>
+              </div>
+            </details>
           </div>
 
           <div id="paid-zone" class="paid-card" hidden>
             <div class="paid-head">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-              <span>Payment Confirmed on Solana Mainnet</span>
+              <span data-i18n="paidHead">Payment Confirmed on Solana Mainnet!</span>
             </div>
             <p class="paid-sub" id="paid-mail-note">Your Pro v1.1 archive is unlocked and ready.</p>
-            <a class="btn btn-primary btn-hero" id="download" hidden>Download mcp-guard-kit-pro-v1.1.zip (43.9 KB) ↓</a>
-            <button type="button" class="btn btn-secondary btn-full" id="copy-receipt">Copy Private Receipt Link</button>
-            <p class="paid-note">Signed URL expires in 7 days — reopen your bookmarked receipt anytime to issue a fresh download link.</p>
+            <a class="btn btn-primary btn-hero" id="download" hidden data-i18n="downloadBtn">Download mcp-guard-kit-pro-v1.1.zip ↓</a>
+            <button type="button" class="btn btn-secondary btn-full" id="copy-receipt" data-i18n="copyReceipt">Copy Private Receipt Link</button>
+            <p class="paid-note" data-i18n="paidNote">Signed URL expires in 7 days — reopen this bookmarked receipt anytime to issue a fresh link.</p>
           </div>
 
           <div class="receipt-foot">
-            <span>Verified USDC Mainnet SPL checkout</span>
-            <button type="button" class="link-btn" id="new-order">Start another order</button>
+            <span data-i18n="footNote">Verified Solana Mainnet USDC checkout</span>
+            <button type="button" class="link-btn" id="new-order" data-i18n="newOrder">Change email / New order</button>
           </div>
         </section>
 
         <div class="status-bar" role="status" aria-live="polite" id="status" data-tone="info" hidden>
           <span class="s-dot" aria-hidden="true"></span>
           <span id="status-text"></span>
+        </div>
+
+        <div class="faq-box">
+          <div class="sec-title" data-i18n="faqTitle">Quick Help &amp; Buyer FAQ</div>
+          <details class="faq-item">
+            <summary data-i18n="faq1Q">Which token and network must I send?</summary>
+            <p data-i18n="faq1A">Send exactly ${amountLabel} USDC (SPL token on Solana Mainnet). Network gas is under $0.001 in SOL. Do not send ERC-20 / BEP-20 USDC.</p>
+          </details>
+          <details class="faq-item">
+            <summary data-i18n="faq2Q">What if I close this tab after paying?</summary>
+            <p data-i18n="faq2A">No problem. Our 5-minute background job detects your finalized Solana Pay transfer and emails your download link from ${esc(sender)}. You can also reopen your bookmarked URL.</p>
+          </details>
+          <details class="faq-item">
+            <summary data-i18n="faq3Q">Sent manually without scanning the QR code?</summary>
+            <p data-i18n="faq3A">Open the Desktop extension / Binance / OKX drawer above or email ${esc(replyTo)} with your Tx signature and Order Reference — we will unlock your download privately.</p>
+          </details>
         </div>
       </main>
     </div>

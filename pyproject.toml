@@ -17,3 +17,6 @@ mcp-guard = "mcp_guard.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["mcp_guard*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

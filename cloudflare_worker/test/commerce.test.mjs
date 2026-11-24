@@ -228,3 +228,26 @@ test("cron discovers a finalized transfer with a closed browser and no webhook",
   assert.equal(saved.signature, signature);
   assert.equal(saved.mail_id, "cron-mail");
 });
+
+test("checkout auto-backfills missing visit row instead of failing with Unknown visit", async t => {
+  const { db, call } = setup(t);
+  const directVisit = crypto.randomUUID();
+  const access = crypto.randomUUID();
+  const res = await call("/api/checkout", {
+    visit: directVisit,
+    access,
+    email: "direct@example.invalid",
+  });
+  assert.equal(res.status, 200);
+  const order = await res.json();
+  assert.equal(order.amount, 3.25);
+  assert.ok(order.payment_url.includes("reference=" + order.reference));
+  const vrow = db.sqlite.prepare("SELECT * FROM visits WHERE id=?").get(directVisit);
+  assert.ok(vrow && vrow.variant === "control");
+
+  const page = await call("/checkout");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.ok(html.includes("data-lang-btn=\"vi\""));
+  assert.ok(html.includes("manual-drawer"));
+});
