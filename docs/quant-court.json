@@ -1,0 +1,201 @@
+{
+  "ok": true,
+  "paper_only": true,
+  "generated_at": "2026-11-25T10:28:56.524995+00:00",
+  "lab_available": true,
+  "summary": {
+    "total_cases": 5,
+    "approved_count": 2,
+    "rejected_count": 3
+  },
+  "verdicts": [
+    {
+      "ok": true,
+      "paper_only": true,
+      "claim_title": "Viral 'Magic Trend' on Pure Random Walk (Fake Alpha Trap)",
+      "family": "tsmom",
+      "symbol": "NOISE_A",
+      "timeframe": "1d",
+      "data_source": "synthetic:noise",
+      "bars": 1800,
+      "verdict": "REJECTED_OVERFIT",
+      "failed_gates": [
+        "G2_ParameterPlateau",
+        "G3_BarPermutation_DSR"
+      ],
+      "gates": {
+        "G1_walk_forward": true,
+        "G2_plateau": false,
+        "G3_bar_perm_dsr": false,
+        "G4_cost_2x": true
+      },
+      "metrics": {
+        "oos_gross_sharpe": 0.496,
+        "oos_net_sharpe": 0.47,
+        "stress_2x_sharpe": 0.442,
+        "bnh_sharpe": -0.538,
+        "fold_hit_ratio": 0.75,
+        "plateau_retention": 0.462,
+        "p_reopt_bar_perm": 0.24,
+        "p_block_perm": 0.1975,
+        "dsr_prob": 0.4491,
+        "max_drawdown": -0.3267,
+        "continuous_kelly": 0.25
+      },
+      "best_params": {
+        "lookback": 40
+      },
+      "case_id": "noise_tsmom"
+    },
+    {
+      "ok": true,
+      "paper_only": true,
+      "claim_title": "Viral RSI Mean-Reversion on Random Walk (Overfit Curve)",
+      "family": "mean_reversion",
+      "symbol": "NOISE_B",
+      "timeframe": "1d",
+      "data_source": "synthetic:noise",
+      "bars": 1800,
+      "verdict": "REJECTED_OVERFIT",
+      "failed_gates": [
+        "G1_OOS_WalkForward",
+        "G2_ParameterPlateau",
+        "G3_BarPermutation_DSR",
+        "G4_2xCostStress"
+      ],
+      "gates": {
+        "G1_walk_forward": false,
+        "G2_plateau": false,
+        "G3_bar_perm_dsr": false,
+        "G4_cost_2x": false
+      },
+      "metrics": {
+        "oos_gross_sharpe": 0.132,
+        "oos_net_sharpe": 0.079,
+        "stress_2x_sharpe": 0.025,
+        "bnh_sharpe": -0.115,
+        "fold_hit_ratio": 0.75,
+        "plateau_retention": -1.262,
+        "p_reopt_bar_perm": 0.48,
+        "p_block_perm": 0.3086,
+        "dsr_prob": 0.0686,
+        "max_drawdown": -0.3411,
+        "continuous_kelly": 0.1359
+      },
+      "best_params": {
+        "window": 50,
+        "z_entry": 2.0
+      },
+      "case_id": "noise_mr"
+    },
+    {
+      "ok": true,
+      "paper_only": true,
+      "claim_title": "Persistent Regime Trend-Following (Planted Ground-Truth Benchmark)",
+      "family": "tsmom",
+      "symbol": "EDGE_MOM",
+      "timeframe": "1d",
+      "data_source": "synthetic:edge_mom",
+      "bars": 1800,
+      "verdict": "APPROVED_EDGE",
+      "failed_gates": [],
+      "gates": {
+        "G1_walk_forward": true,
+        "G2_plateau": true,
+        "G3_bar_perm_dsr": true,
+        "G4_cost_2x": true
+      },
+      "metrics": {
+        "oos_gross_sharpe": 4.853,
+        "oos_net_sharpe": 4.814,
+        "stress_2x_sharpe": 4.774,
+        "bnh_sharpe": -1.803,
+        "fold_hit_ratio": 1.0,
+        "plateau_retention": 0.754,
+        "p_reopt_bar_perm": 0.04,
+        "p_block_perm": 0.0123,
+        "dsr_prob": 1.0,
+        "max_drawdown": -0.2796,
+        "continuous_kelly": 0.25
+      },
+      "best_params": {
+        "lookback": 20
+      },
+      "case_id": "real_edge_tsmom"
+    },
+    {
+      "ok": true,
+      "paper_only": true,
+      "claim_title": "OU Mean-Reversion Benchmark (Planted Ground-Truth Benchmark)",
+      "family": "mean_reversion",
+      "symbol": "EDGE_MR",
+      "timeframe": "1d",
+      "data_source": "synthetic:edge_mr",
+      "bars": 1800,
+      "verdict": "APPROVED_EDGE",
+      "failed_gates": [],
+      "gates": {
+        "G1_walk_forward": true,
+        "G2_plateau": true,
+        "G3_bar_perm_dsr": true,
+        "G4_cost_2x": true
+      },
+      "metrics": {
+        "oos_gross_sharpe": 3.507,
+        "oos_net_sharpe": 3.463,
+        "stress_2x_sharpe": 3.419,
+        "bnh_sharpe": 0.142,
+        "fold_hit_ratio": 1.0,
+        "plateau_retention": 0.754,
+        "p_reopt_bar_perm": 0.04,
+        "p_block_perm": 0.0123,
+        "dsr_prob": 1.0,
+        "max_drawdown": -0.0902,
+        "continuous_kelly": 0.25
+      },
+      "best_params": {
+        "window": 35,
+        "z_entry": 1.5
+      },
+      "case_id": "real_edge_mr"
+    },
+    {
+      "ok": true,
+      "paper_only": true,
+      "claim_title": "Live Public BTC/USDT 1d Trend-Following Audit",
+      "family": "tsmom",
+      "symbol": "BTC/USDT",
+      "timeframe": "1d",
+      "data_source": "live:BTC/USDT:1d",
+      "bars": 2189,
+      "verdict": "REJECTED_OVERFIT",
+      "failed_gates": [
+        "G3_BarPermutation_DSR"
+      ],
+      "gates": {
+        "G1_walk_forward": true,
+        "G2_plateau": true,
+        "G3_bar_perm_dsr": false,
+        "G4_cost_2x": true
+      },
+      "metrics": {
+        "oos_gross_sharpe": 0.916,
+        "oos_net_sharpe": 0.759,
+        "stress_2x_sharpe": 0.6,
+        "bnh_sharpe": 0.931,
+        "fold_hit_ratio": 1.0,
+        "plateau_retention": 0.561,
+        "p_reopt_bar_perm": 0.08,
+        "p_block_perm": 0.0617,
+        "dsr_prob": 0.6084,
+        "max_drawdown": -0.6344,
+        "continuous_kelly": 0.25
+      },
+      "best_params": {
+        "lookback": 40
+      },
+      "case_id": "live_btc_tsmom"
+    }
+  ],
+  "published_paths": []
+}

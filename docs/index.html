@@ -102,6 +102,14 @@
 </head>
 <body>
   <div class="wrap">
+    <nav style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+      <a href="index.html" style="color:#e0f2fe;text-decoration:none;font-size:13px;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid var(--blue);background:rgba(56,189,248,.14);">MCP Guard Kit</a>
+      <a href="scoreboard.html" style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);">Live MCP Scoreboard</a>
+      <a href="tools.html" style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);">Free Interactive Tools</a>
+      <a href="quant-court.html" style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);">Quant Overfit Court</a>
+      <a href="llms.txt" style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);">x402 / llms.txt</a>
+      <a href="https://github.com/thongtuehuu-cyber/makefun-agent-starter-kit" target="_blank" rel="noopener" style="color:#6ee7b7;text-decoration:none;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.1);">Make.fun Starter Kit ↗</a>
+    </nav>
     <span class="pill">Open-Core MIT v1.2.0 · Pro Suite v1.2 · Zero External Dependencies · Python 3.10+</span>
     <h1>Stop AI Agents From Lying About Failed MCP Tool Calls.</h1>
     <p class="lead">Inject deterministic MCP failure modes locally in CI and behind live stdio/HTTP proxies. In reproducible seeded benchmarks (<code>seed=42</code>), naive HTTP-200 wrappers missed <b>75.0% (36/48 Core · 72/96 Pro)</b> of faulted tool responses while <code>mcp-guard</code> caught <b>100.0%</b> with <b>0 false alarms</b>.</p>

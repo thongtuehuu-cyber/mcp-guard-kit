@@ -1,0 +1,27 @@
+# MCP Guard Kit & Autonomous Verification Suite (x402 Machine-Payable Catalog)
+
+> Zero-dependency MCP anti-hallucination verifier, live reliability scoreboard, 4-gate quant overfit court, and Solana Mainnet USDC x402 pay-per-call verification endpoints for AI agents.
+
+- Merchant Solana USDC Wallet: `GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF`
+- USDC Mint (Solana Mainnet): `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+- x402 Discovery JSON: `https://pay.staai.click/.well-known/x402.json`
+- GitHub Pages Mirror: `https://thongtuehuu-cyber.github.io/mcp-guard-kit/x402.json`
+
+## Cloudflare Edge x402 Endpoints (24/7 Live @ pay.staai.click)
+- `POST https://pay.staai.click/api/v1/x402/mcp-audit` — **$0.05 USDC** — MCP Anti-Hallucination Trace Audit
+- `POST https://pay.staai.click/api/v1/x402/price-extract` — **$0.05 USDC** — SSRF-Safe Structured Price Extractor
+- `POST https://pay.staai.click/api/v1/x402/pr-critic` — **$0.15 USDC** — PR Diff Critic & Anti-Hallucination Gate
+- `POST https://pay.staai.click/api/v1/x402/blind-judge` — **$0.10 USDC** — Swap-Debiased Pairwise Blind Judge
+- `POST https://pay.staai.click/api/v1/x402/bounty-feed` — **$0.05 USDC** — Verified 0-PR Bounty & High-EV Arena Feed
+
+## Heavy-Compute x402 Verification Services
+- `POST /api/x402/audit-diff` — **$0.25 USDC** — Dual-Brain AST Anti-Cheat & Security Diff Auditor: Audits git diffs for deleted/weakened assertions, pytest.skip cheats, secret leaks, and GitHub Actions script injections; returns SHA-256 attestation.
+- `POST /api/x402/quant-overfit-check` — **$1.00 USDC** — 4-Gate Quant Overfit Verifier (Bar Permutation + DSR): Runs Walk-Forward OOS, Parameter Plateau, Timothy Masters Re-Optimized Bar Permutation, Deflated Sharpe Ratio, and 2x Cost Stress on a trading strategy.
+- `POST /api/x402/stealth-extract` — **$0.05 USDC** — SSRF-Safe Structured Content & JSON-LD Extractor: Extracts clean structured title, metadata, JSON-LD entities, and normalized text from HTML or SSRF-checked public HTTPS URLs.
+
+## Free Public Resources & Open-Source Tooling
+- Live MCP Reliability Scoreboard: https://thongtuehuu-cyber.github.io/mcp-guard-kit/scoreboard.html
+- Free Browser-Only Agent & Quant Micro-Tools: https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html
+- Quant Overfit Court (4-Gate Bar Permutation + DSR): https://thongtuehuu-cyber.github.io/mcp-guard-kit/quant-court.html
+- Make.fun Agent Starter Kit (Sniper Filter + Anti-Regress Pin): https://github.com/thongtuehuu-cyber/makefun-agent-starter-kit
+- Official Make.fun Agent Onboarding (10% bonus paid on top): https://make.fun/r/p1eh1d2g

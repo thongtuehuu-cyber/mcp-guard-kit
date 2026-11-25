@@ -1,0 +1,82 @@
+{
+  "x402Version": 1,
+  "network": "solana-mainnet",
+  "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "payTo": "GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF",
+  "edge_origin": "https://pay.staai.click",
+  "edge_endpoints": [
+    {
+      "path": "/api/v1/x402/mcp-audit",
+      "amount_usdc": "0.05",
+      "origin": "https://pay.staai.click",
+      "name": "MCP Anti-Hallucination Trace Audit"
+    },
+    {
+      "path": "/api/v1/x402/price-extract",
+      "amount_usdc": "0.05",
+      "origin": "https://pay.staai.click",
+      "name": "SSRF-Safe Structured Price Extractor"
+    },
+    {
+      "path": "/api/v1/x402/pr-critic",
+      "amount_usdc": "0.15",
+      "origin": "https://pay.staai.click",
+      "name": "PR Diff Critic & Anti-Hallucination Gate"
+    },
+    {
+      "path": "/api/v1/x402/blind-judge",
+      "amount_usdc": "0.10",
+      "origin": "https://pay.staai.click",
+      "name": "Swap-Debiased Pairwise Blind Judge"
+    },
+    {
+      "path": "/api/v1/x402/bounty-feed",
+      "amount_usdc": "0.05",
+      "origin": "https://pay.staai.click",
+      "name": "Verified 0-PR Bounty & High-EV Arena Feed"
+    }
+  ],
+  "compute_endpoints": [
+    {
+      "path": "/api/x402/audit-diff",
+      "name": "Dual-Brain AST Anti-Cheat & Security Diff Auditor",
+      "description": "Audits git diffs for deleted/weakened assertions, pytest.skip cheats, secret leaks, and GitHub Actions script injections; returns SHA-256 attestation.",
+      "micros": 250000,
+      "amount_usdc": "0.25",
+      "input_example": {
+        "diff": "diff --git a/app.py b/app.py\n@@ -1 +1 @@\n-return None\n+return 42\n",
+        "workflow_yaml": ""
+      }
+    },
+    {
+      "path": "/api/x402/quant-overfit-check",
+      "name": "4-Gate Quant Overfit Verifier (Bar Permutation + DSR)",
+      "description": "Runs Walk-Forward OOS, Parameter Plateau, Timothy Masters Re-Optimized Bar Permutation, Deflated Sharpe Ratio, and 2x Cost Stress on a trading strategy.",
+      "micros": 1000000,
+      "amount_usdc": "1.00",
+      "input_example": {
+        "family": "tsmom",
+        "symbol": "BTC/USDT",
+        "timeframe": "1d",
+        "live_data": false,
+        "synthetic_kind": "noise"
+      }
+    },
+    {
+      "path": "/api/x402/stealth-extract",
+      "name": "SSRF-Safe Structured Content & JSON-LD Extractor",
+      "description": "Extracts clean structured title, metadata, JSON-LD entities, and normalized text from HTML or SSRF-checked public HTTPS URLs.",
+      "micros": 50000,
+      "amount_usdc": "0.05",
+      "input_example": {
+        "html": "<html><head><title>Sample</title></head><body><h1>Verified Payload</h1></body></html>"
+      }
+    }
+  ],
+  "human_docs": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/",
+  "scoreboard": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/scoreboard.html",
+  "quant_court": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/quant-court.html",
+  "tools": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html",
+  "makefun_referral": "https://make.fun/r/p1eh1d2g",
+  "updated_at": "2026-11-25T10:28:56.549180+00:00"
+}
