@@ -1,0 +1,23 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      mcpGuardX402Payment:
+        type: string
+        title: Solana x402 Payment Header (Optional)
+        description: Optional Solana Mainnet USDC transaction signature or JSON X-PAYMENT header used after the 5 free daily calls per IP are exhausted.
+      mcpGuardApiBase:
+        type: string
+        title: Gateway Origin URL
+        default: "https://pay.staai.click"
+        description: Base URL of the MCP Guard x402 gateway.
+  commandFunction: |-
+    (config) => ({
+      command: "node",
+      args: ["bin/mcp-guard-x402.mjs"],
+      env: {
+        ...(config.mcpGuardX402Payment ? { MCP_GUARD_X402_PAYMENT: config.mcpGuardX402Payment } : {}),
+        ...(config.mcpGuardApiBase ? { MCP_GUARD_API_BASE: config.mcpGuardApiBase } : {})
+      }
+    })

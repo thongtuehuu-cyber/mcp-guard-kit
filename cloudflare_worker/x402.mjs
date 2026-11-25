@@ -4,10 +4,19 @@ import { digest } from "./delivery.mjs";
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "Content-Type, X-PAYMENT, PAYMENT-SIGNATURE, Authorization",
-  "access-control-expose-headers": "PAYMENT-REQUIRED, X-PAYMENT-RESPONSE",
+  "access-control-allow-headers": "Content-Type, X-PAYMENT, PAYMENT-SIGNATURE, Authorization, X-MCP-Trial",
+  "access-control-expose-headers": "PAYMENT-REQUIRED, X-PAYMENT-RESPONSE, X-Free-Tier, X-Free-Remaining, X-Free-Limit",
   "cache-control": "no-store",
 };
+
+const FREEMIUM_LIMIT = 5;
+const FREEMIUM_ENDPOINTS = new Set([
+  "/api/v1/x402/mcp-audit",
+  "/api/v1/x402/pr-critic",
+  "/api/v1/x402/quant-overfit-score",
+  "/api/v1/x402/stealth-extract",
+  "/api/v1/x402/price-extract",
+]);
 
 const REFERENCE_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const ERROR_SIGNAL_RE = /\b(error|failed|failure|exception|permission denied|unauthorized|forbidden|rate limit|timed? ?out|etimedout|429|500|502|503|504|rejected|invalid token|not found)\b/i;
@@ -528,6 +537,12 @@ function catalogManifest(origin) {
     currency: "USDC",
     capabilities: ["x402-v1", "solana-usdc", "mcp-guard", "pr-critic", "blind-judge", "bounty-feed", "stealth-extract", "quant-overfit-score"],
     paymentHeaders: ["X-PAYMENT", "PAYMENT-SIGNATURE"],
+    freemium: {
+      enabled: true,
+      dailyFreeCallsPerIp: FREEMIUM_LIMIT,
+      header: "X-MCP-Trial: 1",
+      mcpServerInstall: "npx -y github:thongtuehuu-cyber/mcp-guard-kit",
+    },
     discovery: origin + "/.well-known/x402.json",
     endpoints: Object.values(X402_ENDPOINTS).map(ep => ({
       path: ep.path,
@@ -949,6 +964,48 @@ export function evaluateQuantOverfitScore(body) {
   };
 }
 
+async function parseAndValidateRequest(req, ep) {
+  if (!req.headers.get("content-type")?.includes("application/json")) {
+    return { errorResponse: xJson({ error: "Expected application/json body" }, 400) };
+  }
+  if (Number(req.headers.get("content-length")) > 131072) {
+    return { errorResponse: xJson({ error: "Payload too large" }, 413) };
+  }
+  const rawBody = await req.text();
+  if (rawBody.length > 131072) {
+    return { errorResponse: xJson({ error: "Payload too large" }, 413) };
+  }
+  let body;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return { errorResponse: xJson({ error: "Invalid JSON body" }, 400) };
+  }
+  // Validate request shape BEFORE consuming free quota, signature, or hitting Solana RPC
+  try {
+    if (ep.path === "/api/v1/x402/mcp-audit") auditMcpTraces(body);
+    else if (ep.path === "/api/v1/x402/price-extract") validatePriceInput(body);
+    else if (ep.path === "/api/v1/x402/pr-critic") evaluatePrCritic(body);
+    else if (ep.path === "/api/v1/x402/blind-judge") evaluateBlindJudge(body);
+    else if (ep.path === "/api/v1/x402/bounty-feed") validateBountyFeedInput(body);
+    else if (ep.path === "/api/v1/x402/stealth-extract") validateStealthExtractInput(body);
+    else if (ep.path === "/api/v1/x402/quant-overfit-score") evaluateQuantOverfitScore(body);
+  } catch (err) {
+    return { errorResponse: xJson({ error: err.message || "Invalid request payload" }, 400) };
+  }
+  return { rawBody, body };
+}
+
+async function executeEndpoint(env, ep, body) {
+  if (ep.path === "/api/v1/x402/mcp-audit") return auditMcpTraces(body);
+  if (ep.path === "/api/v1/x402/price-extract") return extractPricePayload(body);
+  if (ep.path === "/api/v1/x402/pr-critic") return evaluatePrCritic(body);
+  if (ep.path === "/api/v1/x402/blind-judge") return evaluateBlindJudge(body);
+  if (ep.path === "/api/v1/x402/stealth-extract") return runStealthExtract(body);
+  if (ep.path === "/api/v1/x402/quant-overfit-score") return evaluateQuantOverfitScore(body);
+  return queryBountyFeed(env, body);
+}
+
 export async function handleX402(req, env, url, origin) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
   if (req.method === "GET" && (url.pathname === "/.well-known/x402.json" || url.pathname === "/api/v1/x402/catalog")) {
@@ -962,10 +1019,82 @@ export async function handleX402(req, env, url, origin) {
 
   const pay = parsePaymentHeader(req);
   if (!pay || !pay.signature) {
+    const wantsTrial = (req.headers.get("x-mcp-trial") || "").trim() === "1";
+    let trialExhausted = false;
+
+    if (wantsTrial && FREEMIUM_ENDPOINTS.has(ep.path)) {
+      const forwarded = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+      const clientIp = (req.headers.get("cf-connecting-ip") || "").trim() || forwarded || "anon";
+      const utcDay = new Date().toISOString().slice(0, 10);
+      const dayKey = (await digest(`${clientIp}:${utcDay}`)).slice(0, 20);
+      const freeRef = `free:${dayKey}`;
+      const row = await env.COMMERCE_DB.prepare(
+        "SELECT COUNT(*) AS cnt FROM x402_calls WHERE reference=?"
+      ).bind(freeRef).first();
+      const cnt = Number(row?.cnt || 0);
+
+      if (cnt < FREEMIUM_LIMIT) {
+        const parsed = await parseAndValidateRequest(req, ep);
+        if (parsed.errorResponse) return parsed.errorResponse;
+        const { rawBody, body } = parsed;
+
+        let result;
+        try {
+          result = await executeEndpoint(env, ep, body);
+        } catch (err) {
+          return xJson({ error: err.message || "Execution failed" }, 422);
+        }
+
+        const now = Date.now();
+        const reqHash = await digest(ep.path + ":" + rawBody);
+        const respText = JSON.stringify(result);
+        const freeSig = `free:${dayKey}:${cnt + 1}:${ep.path}`;
+        // Attempt amount_micros=0 first; fallback to 1 micro-USDC sentinel if existing
+        // x402_calls schema still enforces CHECK (amount_micros > 0) (migration 0005).
+        let inserted = false;
+        try {
+          const ins0 = await env.COMMERCE_DB.prepare(
+            "INSERT OR IGNORE INTO x402_calls(signature,endpoint,reference,amount_micros,request_hash,response_json,created_at) VALUES(?,?,?,0,?,?,?)"
+          ).bind(freeSig, ep.path, freeRef, reqHash, respText, now).run();
+          inserted = (ins0?.meta?.changes || 0) > 0;
+        } catch {
+          inserted = false;
+        }
+        if (!inserted) {
+          await env.COMMERCE_DB.prepare(
+            "INSERT OR IGNORE INTO x402_calls(signature,endpoint,reference,amount_micros,request_hash,response_json,created_at) VALUES(?,?,?,1,?,?,?)"
+          ).bind(freeSig, ep.path, freeRef, reqHash, respText, now).run();
+        }
+
+        const used = cnt + 1;
+        const remaining = FREEMIUM_LIMIT - used;
+        return xJson(
+          {
+            ...result,
+            freemium: {
+              used,
+              limit: FREEMIUM_LIMIT,
+              remaining,
+              upgrade_x402_usdc: ep.amountUsdc,
+            },
+          },
+          200,
+          {
+            "X-Free-Tier": "1",
+            "X-Free-Remaining": String(remaining),
+            "X-Free-Limit": String(FREEMIUM_LIMIT),
+          }
+        );
+      }
+
+      trialExhausted = true;
+    }
+
     const reference = newReference();
     const challenge = {
       x402Version: 1,
       error: "Payment Required",
+      ...(trialExhausted ? { trial_exhausted: true } : {}),
       accepts: [
         {
           scheme: "exact",
@@ -988,27 +1117,9 @@ export async function handleX402(req, env, url, origin) {
     return xJson(challenge, 402, { "payment-required": toB64Json(challenge) });
   }
 
-  if (!req.headers.get("content-type")?.includes("application/json")) {
-    return xJson({ error: "Expected application/json body" }, 400);
-  }
-  if (Number(req.headers.get("content-length")) > 131072) return xJson({ error: "Payload too large" }, 413);
-  const rawBody = await req.text();
-  if (rawBody.length > 131072) return xJson({ error: "Payload too large" }, 413);
-  let body;
-  try { body = JSON.parse(rawBody); } catch { return xJson({ error: "Invalid JSON body" }, 400); }
-
-  // Validate request shape BEFORE consuming signature or hitting Solana RPC
-  try {
-    if (ep.path === "/api/v1/x402/mcp-audit") auditMcpTraces(body);
-    else if (ep.path === "/api/v1/x402/price-extract") validatePriceInput(body);
-    else if (ep.path === "/api/v1/x402/pr-critic") evaluatePrCritic(body);
-    else if (ep.path === "/api/v1/x402/blind-judge") evaluateBlindJudge(body);
-    else if (ep.path === "/api/v1/x402/bounty-feed") validateBountyFeedInput(body);
-    else if (ep.path === "/api/v1/x402/stealth-extract") validateStealthExtractInput(body);
-    else if (ep.path === "/api/v1/x402/quant-overfit-score") evaluateQuantOverfitScore(body);
-  } catch (err) {
-    return xJson({ error: err.message || "Invalid request payload" }, 400);
-  }
+  const parsed = await parseAndValidateRequest(req, ep);
+  if (parsed.errorResponse) return parsed.errorResponse;
+  const { rawBody, body } = parsed;
 
   const reqHash = await digest(ep.path + ":" + rawBody);
   const existing = await env.COMMERCE_DB.prepare(
@@ -1031,13 +1142,7 @@ export async function handleX402(req, env, url, origin) {
 
   let result;
   try {
-    if (ep.path === "/api/v1/x402/mcp-audit") result = auditMcpTraces(body);
-    else if (ep.path === "/api/v1/x402/price-extract") result = await extractPricePayload(body);
-    else if (ep.path === "/api/v1/x402/pr-critic") result = evaluatePrCritic(body);
-    else if (ep.path === "/api/v1/x402/blind-judge") result = evaluateBlindJudge(body);
-    else if (ep.path === "/api/v1/x402/stealth-extract") result = await runStealthExtract(body);
-    else if (ep.path === "/api/v1/x402/quant-overfit-score") result = evaluateQuantOverfitScore(body);
-    else result = await queryBountyFeed(env, body);
+    result = await executeEndpoint(env, ep, body);
   } catch (err) {
     return xJson({ error: err.message || "Execution failed" }, 422);
   }

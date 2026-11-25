@@ -6,15 +6,22 @@
 - USDC Mint (Solana Mainnet): `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
 - x402 Discovery JSON: `https://pay.staai.click/.well-known/x402.json`
 - GitHub Pages Mirror: `https://thongtuehuu-cyber.github.io/mcp-guard-kit/x402.json`
+- Zero-Dep Stdio MCP Server (Cursor / Claude Desktop): `npx -y github:thongtuehuu-cyber/mcp-guard-kit`
+
+## Freemium Trial Gateway (5 Free Calls/Day per IP -> Auto HTTP 402)
+- Send header `X-MCP-Trial: 1` (without `X-PAYMENT` / `PAYMENT-SIGNATURE`) to receive **5 free calls/day per IP** across the 5 freemium-eligible endpoints below (`mcp-audit`, `pr-critic`, `quant-overfit-score`, `stealth-extract`, `price-extract`).
+- Free responses include headers `X-Free-Tier: 1`, `X-Free-Remaining`, `X-Free-Limit: 5` and a `freemium` metadata block in the JSON body.
+- Starting on call #6/day (or whenever `X-MCP-Trial: 1` is omitted), the gateway automatically returns HTTP `402 Payment Required` with a base64 `PAYMENT-REQUIRED` Solana Mainnet USDC challenge (`trial_exhausted: true` when free quota is used).
+- Run directly as a Cursor / Claude Desktop Stdio MCP Server via `npx -y github:thongtuehuu-cyber/mcp-guard-kit` (exposes `audit_mcp_response`, `critic_git_diff`, `score_quant_overfit`, and `stealth_extract_url`; automatically sends `X-MCP-Trial: 1` and supports `payment_signature` or `MCP_GUARD_X402_PAYMENT` for paid x402 calls).
 
 ## Cloudflare Edge x402 Endpoints (24/7 Live @ pay.staai.click)
-- `POST https://pay.staai.click/api/v1/x402/mcp-audit` — **$0.05 USDC** — MCP Anti-Hallucination Trace Audit
-- `POST https://pay.staai.click/api/v1/x402/price-extract` — **$0.05 USDC** — SSRF-Safe Structured Price Extractor
-- `POST https://pay.staai.click/api/v1/x402/pr-critic` — **$0.15 USDC** — PR Diff Critic & Anti-Hallucination Gate
+- `POST https://pay.staai.click/api/v1/x402/mcp-audit` — **5 Free/Day (`X-MCP-Trial: 1`) -> $0.05 USDC** — MCP Anti-Hallucination Trace Audit
+- `POST https://pay.staai.click/api/v1/x402/price-extract` — **5 Free/Day (`X-MCP-Trial: 1`) -> $0.05 USDC** — SSRF-Safe Structured Price Extractor
+- `POST https://pay.staai.click/api/v1/x402/pr-critic` — **5 Free/Day (`X-MCP-Trial: 1`) -> $0.15 USDC** — PR Diff Critic & Anti-Hallucination Gate
 - `POST https://pay.staai.click/api/v1/x402/blind-judge` — **$0.10 USDC** — Swap-Debiased Pairwise Blind Judge
 - `POST https://pay.staai.click/api/v1/x402/bounty-feed` — **$0.05 USDC** — Verified 0-PR Bounty & High-EV Arena Feed
-- `POST https://pay.staai.click/api/v1/x402/stealth-extract` — **$0.05 USDC** — SSRF-Safe Structured HTML & JSON-LD Extractor
-- `POST https://pay.staai.click/api/v1/x402/quant-overfit-score` — **$0.25 USDC** — Quant Overfit & Deflated Sharpe Ratio (DSR) Auditor
+- `POST https://pay.staai.click/api/v1/x402/stealth-extract` — **5 Free/Day (`X-MCP-Trial: 1`) -> $0.05 USDC** — SSRF-Safe Structured HTML & JSON-LD Extractor
+- `POST https://pay.staai.click/api/v1/x402/quant-overfit-score` — **5 Free/Day (`X-MCP-Trial: 1`) -> $0.25 USDC** — Quant Overfit & Deflated Sharpe Ratio (DSR) Auditor
 
 ## Heavy-Compute x402 Verification Services
 - `POST /api/x402/audit-diff` — **$0.25 USDC** — Dual-Brain AST Anti-Cheat & Security Diff Auditor: Audits git diffs for deleted/weakened assertions, pytest.skip cheats, secret leaks, and GitHub Actions script injections; returns SHA-256 attestation.

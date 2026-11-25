@@ -140,6 +140,58 @@
       <pre id="x402-out">Decoded JSON will appear here.</pre>
     </section>
 
+    <!-- MCP INSTALL: CURSOR / CLAUDE DESKTOP (5 FREE/DAY -> SOLANA X402) -->
+    <section class="tool-card" id="mcp-install" style="border-color:rgba(56,189,248,.45);">
+      <span class="pill">ZERO-DEP NODE.JS &ge;18 · 5 FREE AUDITS/DAY · AUTO SOLANA X402</span>
+      <h2 style="margin-top:10px;">5. Install in Cursor / Claude Desktop (5 Free Audits/Day &rarr; Solana x402)</h2>
+      <p class="sub">Drop this zero-dependency Stdio MCP server into <code>~/.cursor/mcp.json</code> or <code>claude_desktop_config.json</code>. Exposes <code>audit_mcp_response</code>, <code>critic_git_diff</code>, <code>score_quant_overfit</code>, and <code>stealth_extract_url</code> with <b>5 free calls/day per IP</b> (<code>X-MCP-Trial: 1</code>) before seamlessly returning Solana Mainnet USDC x402 payment challenges (<code>$0.05&ndash;$0.25/call</code>).</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 8px;">
+        <button class="btn btn-primary" type="button" id="btn-copy-mcp-json">1-Click Copy MCP JSON Config</button>
+        <button class="btn btn-ghost" type="button" id="btn-copy-npx">Copy npx Command</button>
+        <button class="btn btn-ghost" type="button" id="btn-toggle-paid-env">Show Optional Paid x402 Env</button>
+      </div>
+      <pre id="mcp-config-code">{
+  "mcpServers": {
+    "mcp-guard-x402": {
+      "command": "npx",
+      "args": ["-y", "github:thongtuehuu-cyber/mcp-guard-kit"]
+    }
+  }
+}</pre>
+      <p class="sub" id="mcp-copy-status" style="margin-top:8px;">Direct GitHub CLI test: <code>npx -y github:thongtuehuu-cyber/mcp-guard-kit</code> &middot; Discovery: <code>https://pay.staai.click/.well-known/x402.json</code></p>
+    </section>
+
+    <!-- EXPORT AUDIT REPORT & FIXED-SCOPE FIX ($149) / PRO PACK ($3.25) -->
+    <section class="tool-card" id="export-and-fix" style="border-color:rgba(16,185,129,.45);">
+      <h2>Export Audit Report &amp; Fixed-Scope Fix ($149) / Pro Pack ($3.25)</h2>
+      <p class="sub">Export your current Tool #1 MCP Silent-200 inspection locally, grab the offline Pro Pack archive, or book a guaranteed PR fix for flaky MCP connectors.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 16px;">
+        <button class="btn btn-primary" type="button" id="btn-export-json">Export Audit Report (.json)</button>
+        <button class="btn btn-ghost" type="button" id="btn-export-md">Export Audit Report (.md)</button>
+        <button class="btn btn-ghost" type="button" id="btn-copy-report">Copy Report Summary</button>
+      </div>
+      <div class="grid-2">
+        <div class="stat-box" style="display:flex; flex-direction:column; gap:8px;">
+          <span>OFFLINE PRO ARCHIVE · INSTANT SOLANA USDC ZIP</span>
+          <strong>Pro Pack &mdash; $3.25 USDC</strong>
+          <p class="sub" style="margin:0; color:#cbd5e1;">Standalone MCP Guard Kit Pro Starter Archive (<code>mcp-guard-kit-pro-v1.1.zip</code>): 24 connector chaos scenarios (Stripe, GitHub, Postgres, Slack, Playwright), stdio/HTTP proxies, pytest fixtures &amp; SARIF/JUnit/HTML reports. Need 30 v1.2 scenarios? Solo Pro v1.2 ($19) &amp; Team CI ($79) are also available.</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:6px;">
+            <a class="btn btn-primary" href="https://pay.staai.click/checkout?sku=starter" target="_blank" rel="noopener">Get Pro Pack ($3.25 USDC) &rarr;</a>
+            <a class="btn btn-ghost" href="https://pay.staai.click/checkout?sku=solo" target="_blank" rel="noopener">Solo Pro v1.2 ($19)</a>
+          </div>
+        </div>
+        <div class="stat-box warn" style="display:flex; flex-direction:column; gap:8px;">
+          <span>GUARANTEED PR DELIVERABLE · NO RETAINER</span>
+          <strong>Fixed-Scope Fix &mdash; $149</strong>
+          <p class="sub" style="margin:0; color:#cbd5e1;">We isolate your silent HTTP-200 / GraphQL / truncated-stream MCP failure, write a deterministic reproducer + anti-hallucination verifier guard, and open a clean PR with a passing pytest CI regression gate.</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:6px;">
+            <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/issues/new?labels=integration-fix&title=Fixed-Scope%20MCP%20Integration%20Fix%20(%24149)" target="_blank" rel="noopener">Request Fixed-Scope Fix ($149) &rarr;</a>
+            <a class="btn btn-ghost" href="mailto:orders@mail.staai.click?subject=Fixed-Scope%20MCP%20Fix%20(%24149)">Email Spec</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- UNIFIED HIGH-TICKET EXIT -->
     <section class="exit-banner">
       <span class="pill">UNIFIED HIGH-TICKET EXIT · TRANSPARENT DISCLOSURE</span>
@@ -241,6 +293,125 @@
     }
     document.getElementById("btn-x402-decode").onclick = decodeX402;
     decodeX402();
+
+    // Tool 5: 1-Click MCP Install JSON Copy & Optional Paid Env Toggle
+    const MCP_CONFIG_FREE = JSON.stringify({
+      mcpServers: {
+        "mcp-guard-x402": {
+          command: "npx",
+          args: ["-y", "github:thongtuehuu-cyber/mcp-guard-kit"]
+        }
+      }
+    }, null, 2);
+    const MCP_CONFIG_PAID = JSON.stringify({
+      mcpServers: {
+        "mcp-guard-x402": {
+          command: "npx",
+          args: ["-y", "github:thongtuehuu-cyber/mcp-guard-kit"],
+          env: {
+            MCP_GUARD_X402_PAYMENT: "<YOUR_SOLANA_USDC_TX_SIGNATURE>"
+          }
+        }
+      }
+    }, null, 2);
+    let showingPaidEnv = false;
+    const mcpConfigEl = document.getElementById("mcp-config-code");
+    const mcpCopyStatus = document.getElementById("mcp-copy-status");
+    async function copyText(str, btn, okLabel) {
+      const orig = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(str);
+        btn.textContent = okLabel;
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = str;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        btn.textContent = okLabel;
+      }
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    }
+    document.getElementById("btn-copy-mcp-json").onclick = (e) => {
+      copyText(mcpConfigEl.textContent, e.currentTarget, "Copied MCP JSON ✓");
+    };
+    document.getElementById("btn-copy-npx").onclick = (e) => {
+      copyText("npx -y github:thongtuehuu-cyber/mcp-guard-kit", e.currentTarget, "Copied npx Command ✓");
+    };
+    document.getElementById("btn-toggle-paid-env").onclick = (e) => {
+      showingPaidEnv = !showingPaidEnv;
+      mcpConfigEl.textContent = showingPaidEnv ? MCP_CONFIG_PAID : MCP_CONFIG_FREE;
+      e.currentTarget.textContent = showingPaidEnv ? "Hide Paid x402 Env" : "Show Optional Paid x402 Env";
+      mcpCopyStatus.textContent = showingPaidEnv
+        ? "Optional: set MCP_GUARD_X402_PAYMENT once your 5 free daily calls are used."
+        : "Direct GitHub CLI test: npx -y github:thongtuehuu-cyber/mcp-guard-kit · Discovery: https://pay.staai.click/.well-known/x402.json";
+    };
+
+    // Export Audit Report (.json / .md / clipboard)
+    function buildAuditReport() {
+      inspectMcp();
+      let parsed = {};
+      try { parsed = JSON.parse(document.getElementById("dbg-out").textContent); } catch {}
+      return {
+        generated_at: new Date().toISOString(),
+        tool: "mcp-guard-kit-browser-auditor",
+        input: {
+          http_status: Number(document.getElementById("dbg-status").value || 200),
+          agent_claim: document.getElementById("dbg-claim").value.trim(),
+          raw_payload: document.getElementById("dbg-payload").value.trim()
+        },
+        verdict: parsed
+      };
+    }
+    function buildAuditMarkdown(rep) {
+      const v = rep.verdict || {};
+      return [
+        "# MCP Guard Silent-200 Audit Report",
+        "",
+        `- **Generated:** ${rep.generated_at}`,
+        `- **HTTP Status:** \`${rep.input.http_status}\``,
+        `- **Fault Detected:** \`${Boolean(v.fault_detected_by_mcp_guard)}\``,
+        `- **Naive HTTP-200 Missed:** \`${Boolean(v.naive_http_200_wrapper_missed)}\``,
+        `- **Agent Hallucinated Success:** \`${Boolean(v.agent_hallucinated_success)}\``,
+        `- **Fault Reasons:** ${(v.fault_reasons || []).join(", ") || "none"}`,
+        `- **Recommendation:** ${v.recommendation || ""}`,
+        "",
+        "## Agent Claim",
+        "",
+        `> ${rep.input.agent_claim}`,
+        "",
+        "## Raw Tool Response",
+        "",
+        "```json",
+        rep.input.raw_payload,
+        "```",
+        ""
+      ].join("\n");
+    }
+    function downloadBlob(filename, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    document.getElementById("btn-export-json").onclick = () => {
+      const rep = buildAuditReport();
+      downloadBlob("mcp-guard-audit-report.json", JSON.stringify(rep, null, 2), "application/json");
+    };
+    document.getElementById("btn-export-md").onclick = () => {
+      const rep = buildAuditReport();
+      downloadBlob("mcp-guard-audit-report.md", buildAuditMarkdown(rep), "text/markdown");
+    };
+    document.getElementById("btn-copy-report").onclick = (e) => {
+      const rep = buildAuditReport();
+      copyText(buildAuditMarkdown(rep), e.currentTarget, "Copied Markdown Report ✓");
+    };
   </script>
 </body>
 </html>

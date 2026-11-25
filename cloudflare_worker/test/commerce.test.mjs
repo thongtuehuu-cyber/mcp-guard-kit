@@ -611,3 +611,134 @@ test("x402 v3 endpoints: stealth-extract (0.05 USDC) and quant-overfit-score (0.
   assert.ok(qJson2.deflated_sharpe_prob >= 0.95);
   assert.ok(qJson2.quarter_kelly_cap > 0 && qJson2.quarter_kelly_cap <= 0.25);
 });
+
+test("x402 freemium: 5 free calls/day with X-MCP-Trial: 1 -> call #6 returns 402 trial_exhausted, non-trial stays 402", async t => {
+  const { env, call } = setup(t);
+  const localFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = localFetch; });
+
+  // 1. Discovery manifest advertises freemium & CORS exposes trial headers
+  const discRes = await call("/.well-known/x402.json");
+  assert.equal(discRes.status, 200);
+  assert.ok(discRes.headers.get("access-control-allow-headers").includes("X-MCP-Trial"));
+  assert.ok(discRes.headers.get("access-control-expose-headers").includes("X-Free-Tier"));
+  assert.ok(discRes.headers.get("access-control-expose-headers").includes("X-Free-Remaining"));
+  assert.ok(discRes.headers.get("access-control-expose-headers").includes("X-Free-Limit"));
+  const disc = await discRes.json();
+  assert.deepEqual(disc.freemium, {
+    enabled: true,
+    dailyFreeCallsPerIp: 5,
+    header: "X-MCP-Trial: 1",
+    mcpServerInstall: "npx -y github:thongtuehuu-cyber/mcp-guard-kit",
+  });
+
+  const postReq = (path, payload, extraHeaders = {}) => worker.fetch(new Request(origin + path, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...extraHeaders },
+    body: JSON.stringify(payload),
+  }), env, { waitUntil() {} });
+
+  const auditPayload = {
+    traces: [
+      {
+        case_id: "trial-1",
+        tool_name: "charge",
+        fault_id: "silent_error_200",
+        tool_response: { status_code: 200, body: { paid: false, error: "card_declined" } },
+        agent_claim: "Payment completed successfully!",
+        required_keys: ["charge_id"],
+      },
+    ],
+  };
+
+  // 2. Requests WITHOUT X-MCP-Trial: 1 MUST continue returning HTTP 402 immediately (100% backward compatible)
+  const nonTrial = await postReq("/api/v1/x402/mcp-audit", auditPayload, { "cf-connecting-ip": "203.0.113.10" });
+  assert.equal(nonTrial.status, 402);
+  const nonTrialBody = await nonTrial.json();
+  assert.equal(nonTrialBody.trial_exhausted, undefined);
+  assert.ok(nonTrial.headers.get("payment-required"));
+
+  // 3. Non-freemium endpoints (blind-judge, bounty-feed) remain HTTP 402 even with X-MCP-Trial: 1
+  const nonEligible = await postReq(
+    "/api/v1/x402/blind-judge",
+    { pass1: { winner: "B" }, pass2: { winner: "A" } },
+    { "x-mcp-trial": "1", "cf-connecting-ip": "203.0.113.10" }
+  );
+  assert.equal(nonEligible.status, 402);
+
+  // 4. Invalid request under trial returns 400 and does NOT consume free quota
+  const badTrial = await postReq(
+    "/api/v1/x402/stealth-extract",
+    { url: "https://127.0.0.1/internal" },
+    { "x-mcp-trial": "1", "cf-connecting-ip": "203.0.113.10" }
+  );
+  assert.equal(badTrial.status, 400);
+
+  // 5. Calls 1..5 across freemium-eligible endpoints return HTTP 200 with decrementing X-Free-Remaining
+  const trialCalls = [
+    { path: "/api/v1/x402/mcp-audit", usdc: "0.05", payload: auditPayload },
+    { path: "/api/v1/x402/pr-critic", usdc: "0.15", payload: { diff: "diff --git a/a.py b/a.py\n+++ b/a.py\n+x = 1\n" } },
+    {
+      path: "/api/v1/x402/quant-overfit-score",
+      usdc: "0.25",
+      payload: { returns: Array.from({ length: 30 }, (_, i) => (i % 4 === 0 ? -0.001 : 0.004)), n_trials: 2 },
+    },
+    { path: "/api/v1/x402/stealth-extract", usdc: "0.05", payload: { html: "<html><head><title>T</title></head><body><h1>H1</h1></body></html>" } },
+    {
+      path: "/api/v1/x402/price-extract",
+      usdc: "0.05",
+      payload: {
+        adapter: "jsonld",
+        currency: "USD",
+        html: '<script type="application/ld+json">{"@type":"Product","name":"Item","offers":{"@type":"Offer","price":"9.50","priceCurrency":"USD"}}</script>',
+      },
+    },
+  ];
+
+  for (let i = 0; i < trialCalls.length; i++) {
+    const tc = trialCalls[i];
+    const res = await postReq(tc.path, tc.payload, { "x-mcp-trial": "1", "cf-connecting-ip": "203.0.113.10" });
+    assert.equal(res.status, 200, `Expected 200 on trial call #${i + 1} (${tc.path})`);
+    assert.equal(res.headers.get("x-free-tier"), "1");
+    assert.equal(res.headers.get("x-free-limit"), "5");
+    assert.equal(res.headers.get("x-free-remaining"), String(4 - i));
+    const data = await res.json();
+    assert.equal(data.ok, true);
+    assert.deepEqual(data.freemium, {
+      used: i + 1,
+      limit: 5,
+      remaining: 4 - i,
+      upgrade_x402_usdc: tc.usdc,
+    });
+  }
+
+  // 6. Call #6 from same IP returns HTTP 402 + PAYMENT-REQUIRED + trial_exhausted: true
+  const sixth = await postReq("/api/v1/x402/mcp-audit", auditPayload, { "x-mcp-trial": "1", "cf-connecting-ip": "203.0.113.10" });
+  assert.equal(sixth.status, 402);
+  const sixthBody = await sixth.json();
+  assert.equal(sixthBody.trial_exhausted, true);
+  assert.equal(sixthBody.accepts[0].maxAmountRequired, "50000");
+  const sixthHdr = JSON.parse(Buffer.from(sixth.headers.get("payment-required"), "base64").toString("utf8"));
+  assert.equal(sixthHdr.trial_exhausted, true);
+
+  // 7. Another IP (via X-Forwarded-For) still gets its own fresh 5/day allowance
+  const otherIpRes = await postReq("/api/v1/x402/mcp-audit", auditPayload, { "x-mcp-trial": "1", "x-forwarded-for": "198.51.100.77, 10.0.0.1" });
+  assert.equal(otherIpRes.status, 200);
+  assert.equal(otherIpRes.headers.get("x-free-remaining"), "4");
+
+  // 8. Exhausted IP paying via X-PAYMENT bypasses trial and succeeds with 200 + x-payment-response
+  const paidSig = "1".repeat(63) + "z";
+  const paidRef = sixthBody.accepts[0].extra.reference;
+  const txPaid = transaction(paidRef, 50000);
+  txPaid.transaction.signatures[0] = paidSig;
+  globalThis.fetch = async () => Response.json({ result: txPaid });
+
+  const paidAfterTrial = await postReq("/api/v1/x402/mcp-audit", auditPayload, {
+    "x-mcp-trial": "1",
+    "cf-connecting-ip": "203.0.113.10",
+    "x-payment": JSON.stringify({ signature: paidSig, reference: paidRef }),
+  });
+  assert.equal(paidAfterTrial.status, 200);
+  assert.equal(paidAfterTrial.headers.get("x-free-tier"), null);
+  assert.ok(paidAfterTrial.headers.get("x-payment-response"));
+});

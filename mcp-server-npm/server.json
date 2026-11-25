@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.thongtuehuu-cyber/mcp-guard-x402",
+  "title": "MCP Guard x402 Verification Suite",
+  "description": "Zero-dependency MCP Stdio server for anti-hallucination trace audits, PR diff critic, Quant Overfit DSR scoring, and SSRF-safe extraction. Includes 5 free calls/day per IP via X-MCP-Trial, then Solana Mainnet USDC x402 pay-per-call.",
+  "version": "1.2.0",
+  "websiteUrl": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html",
+  "repository": {
+    "url": "https://github.com/thongtuehuu-cyber/mcp-guard-kit",
+    "source": "github",
+    "subfolder": "mcp-server-npm"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mcp-guard-x402",
+      "version": "1.2.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MCP_GUARD_X402_PAYMENT",
+          "description": "Optional Solana Mainnet USDC transaction signature or JSON X-PAYMENT payload after exhausting the 5 free calls/day quota.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "MCP_GUARD_API_BASE",
+          "description": "Optional custom MCP Guard x402 gateway base URL (defaults to https://pay.staai.click).",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

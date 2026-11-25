@@ -1,0 +1,42 @@
+{
+  "name": "mcp-guard-x402",
+  "version": "1.2.0",
+  "description": "Zero-dependency Stdio MCP Server for MCP anti-hallucination audits, PR diff critic, Quant Overfit DSR scoring, and SSRF-safe extraction (5 free calls/day -> Solana USDC x402).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "mcp-guard-x402": "./bin/mcp-guard-x402.mjs"
+  },
+  "main": "./bin/mcp-guard-x402.mjs",
+  "files": [
+    "bin/",
+    "smithery.yaml",
+    "server.json"
+  ],
+  "scripts": {
+    "start": "node ./bin/mcp-guard-x402.mjs",
+    "test": "node --test ./test_mcp_server.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thongtuehuu-cyber/mcp-guard-kit.git",
+    "directory": "mcp-server-npm"
+  },
+  "homepage": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "solana",
+    "usdc",
+    "ai-agents",
+    "anti-hallucination",
+    "pr-critic",
+    "quant",
+    "dsr"
+  ],
+  "dependencies": {}
+}

@@ -1,0 +1,41 @@
+{
+  "name": "mcp-guard-x402",
+  "version": "1.2.0",
+  "description": "Zero-dependency MCP Guard x402 Stdio MCP Server (5 free audits/day per IP -> Solana Mainnet USDC x402 pay-per-call)",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "mcp-guard-x402": "./mcp-server-npm/bin/mcp-guard-x402.mjs"
+  },
+  "main": "./mcp-server-npm/bin/mcp-guard-x402.mjs",
+  "files": [
+    "mcp-server-npm/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "mcp-server": "node ./mcp-server-npm/bin/mcp-guard-x402.mjs",
+    "test:mcp-server": "node --test ./mcp-server-npm/test_mcp_server.mjs",
+    "test:worker": "node --test ./cloudflare_worker/test/commerce.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thongtuehuu-cyber/mcp-guard-kit.git"
+  },
+  "homepage": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "solana",
+    "usdc",
+    "mcp-guard",
+    "anti-hallucination",
+    "pr-critic",
+    "quant-overfit"
+  ],
+  "dependencies": {}
+}
