@@ -3,19 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MCP Guard Kit v1.1 — Fault-Injection &amp; Anti-Hallucination Verifier for AI Agents</title>
+  <title>MCP Guard Kit v1.2 — Fault-Injection &amp; Anti-Hallucination Verifier for AI Agents</title>
   <meta name="description" content="Catch LLM agents lying about failed MCP tool calls. Zero-dependency Python fault-injection chaos harness, live stdio/HTTP chaos proxy &amp; pytest CI verifier." />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "MCP Guard Kit",
-    "softwareVersion": "1.1.0",
+    "softwareVersion": "1.2.0",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Windows, macOS, Linux",
     "offers": [
       {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Open-Core MIT CLI v1.1.0"},
-      {"@type": "Offer", "price": "3.25", "priceCurrency": "USD", "name": "Pro Automation Pack v1.1"}
+      {"@type": "Offer", "price": "19", "priceCurrency": "USD", "name": "Pro Automation Pack v1.2 — Solo"},
+      {"@type": "Offer", "price": "79", "priceCurrency": "USD", "name": "Pro Automation Pack v1.2 — Team CI"},
+      {"@type": "Offer", "price": "19", "priceCurrency": "USD", "name": "Deal Monitor Self-Hosted v1.2"}
     ],
     "url": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/"
   }
@@ -100,13 +102,13 @@
 </head>
 <body>
   <div class="wrap">
-    <span class="pill">Open-Core MIT v1.1.0 · Pro Pack v1.1 · Zero External Dependencies · Python 3.10+</span>
+    <span class="pill">Open-Core MIT v1.1.0 · Pro Pack v1.2 · Zero External Dependencies · Python 3.10+</span>
     <h1>Stop AI Agents From Lying About Failed MCP Tool Calls.</h1>
     <p class="lead">Inject deterministic MCP failure modes locally in CI and behind live stdio/HTTP proxies. In reproducible seeded benchmarks (<code>seed=42</code>), naive HTTP-200 wrappers missed <b>75.0% (36/48 Core · 72/96 Pro)</b> of faulted tool responses while <code>mcp-guard</code> caught <b>100.0%</b> with <b>0 false alarms</b>.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.1.0">Download Free CLI v1.1.0 →</a>
       <a class="btn btn-ghost" href="#fault-sim">Try Live Fault Simulator</a>
-      <a class="btn btn-ghost" href="#pro-pack">Pro Pack v1.1 ($3.25)</a>
+      <a class="btn btn-ghost" href="#pro-pack">Solana Store (v1.2 · $19–$79)</a>
     </div>
 
     <pre><code>git clone https://github.com/thongtuehuu-cyber/mcp-guard-kit.git
@@ -121,9 +123,9 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
         <p>8 core fault classes (timeout, 429 rate-limit, malformed JSON, empty payload, silent 200 error, schema drift, partial 207 failure, truncated stream) + 12 clean baseline calls. <b>0 false positives</b>.</p>
       </div>
       <div class="card" style="border-color:rgba(56,189,248,.45);">
-        <h3>Pro v1.1 Multi-Connector Benchmark (120 Trials, seed=42)</h3>
-        <div class="metric-big">72 / 96 (75.0%) Missed → 96 / 96 (100.0%) Caught</div>
-        <p>24 production JSON-RPC 2.0 <code>tools/call</code> scenarios across <b>Stripe, GitHub, Postgres, Slack, and Playwright</b> + live stdio/HTTP chaos proxy &amp; SARIF 2.1 PR gates. <b>0 false positives</b>.</p>
+        <h3>Pro v1.2 Multi-Connector Benchmark (120 Trials, seed=42)</h3>
+        <div class="metric-big">96 / 96 (100.0%) Caught · 0 False Alarms</div>
+        <p>30 production JSON-RPC 2.0 scenarios across <b>Stripe, GitHub, Postgres, Slack, Playwright &amp; MCP Core</b> + stderr-safe stdio &amp; Streamable-HTTP chaos proxies, policy gates, and SARIF 2.1 reports.</p>
       </div>
     </div>
 
@@ -152,7 +154,7 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
     </section>
 
     <section class="panel-box" id="pro-showcase">
-      <h2 style="margin-top:0;">Inside Pro Pack v1.1 ($3.25 One-Time ZIP)</h2>
+      <h2 style="margin-top:0;">Inside Pro Pack v1.2 (One-Time Solana USDC ZIP)</h2>
       <p style="color:var(--muted);font-size:13.5px;margin-top:0;">Drop-in live chaos proxies, zero-config pytest fixtures, and GitHub Security tab SARIF 2.1 CI gates.</p>
       <div class="tabs" id="code-tabs">
         <button class="tab-btn active" type="button" data-code="stdio">proxy-stdio (NDJSON / Content-Length)</button>
@@ -188,7 +190,7 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
         <tr><th>Tool</th><th>Pricing</th><th>Offline / Zero-Dep CI</th><th>Silent 200 &amp; Partial Fault Chaos</th><th>Anti-Hallucination Verifier</th></tr>
       </thead>
       <tbody>
-        <tr><td><b>MCP Guard Kit</b></td><td><b>Free MIT / $3.25 Pro v1.1</b></td><td>Yes (100% local Python)</td><td>Yes (8 Core + 24 Pro + Live Proxy)</td><td>Yes (evidence-backed + SARIF)</td></tr>
+        <tr><td><b>MCP Guard Kit</b></td><td><b>Free MIT / $19 Solo · $79 Team (v1.2)</b></td><td>Yes (100% local Python)</td><td>Yes (8 Core + 30 Pro + Live Proxy)</td><td>Yes (evidence-backed + Policy + SARIF)</td></tr>
         <tr><td>LangSmith</td><td>$39+/seat/mo</td><td>No (Cloud SaaS)</td><td>Manual setup</td><td>LLM-as-judge (costly)</td></tr>
         <tr><td>Promptfoo</td><td>Open-source / Cloud</td><td>Node.js required</td><td>Prompt eval focus</td><td>Regex / LLM rubric</td></tr>
         <tr><td>Manual Pytest Mocks</td><td>Engineering hours</td><td>Yes</td><td>Ad-hoc per team</td><td>Easy to miss 200-errors</td></tr>
@@ -206,34 +208,36 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       </div>
 
       <div class="card" style="border-color:rgba(16,185,129,.45);">
-        <h3>Pro Automation Pack v1.1 — $3.25 (One-Time)</h3>
-        <p>24 production scenarios (Stripe, GitHub, Postgres, Slack, Playwright), live <code>proxy-stdio</code> &amp; <code>proxy-http</code> JSON-RPC chaos proxies, reusable synthetic regression fixtures, release comparisons, SARIF / JUnit / HTML reports &amp; commercial license.</p>
+        <h3>Pro Suite v1.2 — 19 USDC Solo / 79 USDC Team</h3>
+        <p>30 production scenarios (Stripe, GitHub, Postgres, Slack, Playwright, MCP Core), stderr-safe <code>proxy-stdio</code> &amp; Streamable-HTTP chaos proxies, <code>--policy</code> &amp; <code>--rules-file</code> CLI, <code>init</code> scaffolding, distill/replay, SARIF / JUnit / HTML &amp; commercial license. Also available: <b>Deal Monitor Self-Hosted v1.2 (19 USDC)</b>.</p>
         <div class="pay-box">
           <!-- AUTO_CHECKOUT_SLOT_START -->
-          <div style="font-size:12px;font-weight:700;color:#6ee7b7;margin-bottom:8px;">24/7 Instant Auto-Checkout · 3.25 USDC (Solana Mainnet · 0% Fee)</div>
+          <div style="font-size:12px;font-weight:700;color:#6ee7b7;margin-bottom:8px;">24/7 Instant Solana Auto-Checkout · 0% Fee · 0 KYC · Instant ZIP</div>
           <div class="pay-actions" style="margin-bottom:10px;">
-            <a id="order-checkout" class="btn-sm btn-sol" href="https://mcp-guard-solana-fulfillment.daochienthangkt.workers.dev/checkout" target="_blank" rel="noopener noreferrer">Instant 24/7 Auto-Checkout — 3.25 USDC ↗</a>
+            <a id="order-checkout" class="btn-sm btn-sol" href="https://pay.staai.click/checkout?sku=solo" target="_blank" rel="noopener noreferrer">Solo Pro v1.2 — 19 USDC ↗</a>
+            <a class="btn-sm btn-copy" href="https://pay.staai.click/checkout?sku=team" target="_blank" rel="noopener noreferrer">Team CI — 79 USDC ↗</a>
+            <a class="btn-sm btn-copy" href="https://pay.staai.click/checkout?sku=deal-monitor" target="_blank" rel="noopener noreferrer">Deal Monitor v1.2 — 19 USDC ↗</a>
           </div>
           <!-- AUTO_CHECKOUT_SLOT_END -->
           <details id="manual-pay">
-          <summary>Manual wallet payment and private claim · 3.25 USDC</summary>
+          <summary>Manual wallet payment and private claim · 19 USDC (Solo)</summary>
           <div class="qr-row">
-            <img class="qr-img" src="./solana-pay-qr.svg" alt="Solana Pay 3.25 USDC QR Code" width="144" height="144" />
+            <img class="qr-img" src="./solana-pay-qr.svg" alt="Solana Pay USDC QR Code" width="144" height="144" />
             <div style="flex:1;min-width:160px;">
               <div style="font-size:12px;color:#cbd5e1;font-weight:600;">Scan with Phantom / Solflare</div>
-              <div class="muted-sm">Exact 3.25 USDC SPL transfer to merchant wallet.</div>
+              <div class="muted-sm">Use Auto-Checkout above for dynamic per-order QR &amp; instant download, or copy wallet for manual claims.</div>
               <div class="pay-addr" id="sol-wallet">GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF</div>
             </div>
           </div>
           <div class="pay-actions">
-            <a class="btn-sm btn-sol" href="solana:GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF?amount=3.25&spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&label=MCP+Guard+Kit+Pro&message=Pro+License+v1.1">Pay 3.25 USDC (Solana Pay) ↗</a>
+            <a class="btn-sm btn-sol" href="solana:GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF?amount=19&spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&label=MCP+Guard+Kit+Pro+v1.2&message=Pro+Solo+v1.2">Pay 19 USDC (Solana Pay) ↗</a>
             <button class="btn-sm btn-copy" type="button" id="btn-copy-sol">Copy USDC Address</button>
           </div>
           <div class="tx-claim">
-            <label for="tx-sig-in" style="font-size:11.5px;color:#cbd5e1;font-weight:600;">Already paid? Paste Solana Tx Signature to claim Pro v1.1 ZIP:</label>
+            <label for="tx-sig-in" style="font-size:11.5px;color:#cbd5e1;font-weight:600;">Already paid? Paste Solana Tx Signature to claim ZIP:</label>
             <input id="tx-sig-in" class="tx-input" type="text" placeholder="Paste base58 Solana Tx signature..." />
             <div class="pay-actions">
-              <a id="btn-claim-issue" class="btn-sm btn-copy" href="mailto:thongtuehuu@gmail.com?subject=MCP%20Guard%20Pro%20purchase" target="_blank" rel="noopener noreferrer">Email a private purchase claim ↗</a>
+              <a id="btn-claim-issue" class="btn-sm btn-copy" href="mailto:orders@mail.staai.click?subject=MCP%20Guard%20Pro%20purchase" target="_blank" rel="noopener noreferrer">Email a private purchase claim ↗</a>
               <a id="btn-solscan-tx" class="btn-sm btn-copy btn-disabled" href="#pro-pack" target="_blank" rel="noopener noreferrer">View on Solscan ↗</a>
             </div>
             <div id="tx-sig-status" class="muted-sm">Paste a valid base58 Tx signature (32–120 chars) for a private purchase claim.</div>
@@ -372,14 +376,14 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
       txIn.addEventListener('input', () => {
         const sig = txIn.value.trim();
         if (!sig) {
-          btnClaim.href = 'mailto:thongtuehuu@gmail.com?subject=MCP%20Guard%20Pro%20purchase';
+          btnClaim.href = 'mailto:orders@mail.staai.click?subject=MCP%20Guard%20Pro%20purchase';
           btnSolscan.href = '#pro-pack';
           btnSolscan.classList.add('btn-disabled');
           txStatus.textContent = 'Paste a valid base58 Tx signature (32–120 chars) for 1-click claim & Solscan verification.';
           return;
         }
         if (b58Re.test(sig)) {
-          btnClaim.href = 'mailto:thongtuehuu@gmail.com?subject=' + encodeURIComponent('Pro License Claim v1.1') + '&body=' + encodeURIComponent('Solana Tx Signature: ' + sig + '\nAmount: 3.25 USDC\nSolscan: https://solscan.io/tx/' + sig);
+          btnClaim.href = 'mailto:orders@mail.staai.click?subject=' + encodeURIComponent('Pro License Claim v1.2') + '&body=' + encodeURIComponent('Solana Tx Signature: ' + sig + '\nAmount: 19 USDC\nSolscan: https://solscan.io/tx/' + sig);
           btnSolscan.href = 'https://solscan.io/tx/' + encodeURIComponent(sig);
           btnSolscan.classList.remove('btn-disabled');
           txStatus.textContent = 'Valid base58 signature detected — ready for a private purchase claim.';
