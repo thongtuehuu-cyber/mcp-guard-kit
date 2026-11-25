@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "generated_at": "2026-11-25T10:28:52.224049+00:00",
+  "generated_at": "2026-11-25T10:58:41.362796+00:00",
   "live_github": true,
   "fault_matrix": [
     {
@@ -49,7 +49,7 @@
       "category": "Reliability Guard",
       "stars": 0,
       "open_issues": 0,
-      "pushed_at": "2026-11-25T09:28:41Z",
+      "pushed_at": "2026-11-25T10:29:22Z",
       "passed_probes": 6,
       "total_probes": 6,
       "reliability_score": 100.0,
@@ -116,7 +116,7 @@
       "name": "GitHub Official MCP Server",
       "category": "DevTools MCP",
       "stars": 34738,
-      "open_issues": 467,
+      "open_issues": 466,
       "pushed_at": "2026-11-24T16:19:19Z",
       "passed_probes": 5,
       "total_probes": 6,
@@ -185,9 +185,9 @@
       "url": "https://github.com/n8n-io/n8n",
       "name": "n8n AI Agent & MCP Tool Nodes",
       "category": "Workflow Automation",
-      "stars": 212082,
-      "open_issues": 1266,
-      "pushed_at": "2026-11-25T10:28:43Z",
+      "stars": 212084,
+      "open_issues": 1268,
+      "pushed_at": "2026-11-25T10:56:53Z",
       "passed_probes": 2,
       "total_probes": 6,
       "reliability_score": 33.3,
@@ -477,8 +477,8 @@
       "url": "https://github.com/punkpeye/awesome-mcp-servers",
       "name": "Community MCP Ecosystem (Top Integrations)",
       "category": "MCP Directory",
-      "stars": 98486,
-      "open_issues": 5381,
+      "stars": 98487,
+      "open_issues": 5384,
       "pushed_at": "2026-11-25T07:42:26Z",
       "passed_probes": 1,
       "total_probes": 6,
@@ -570,23 +570,23 @@
     },
     {
       "id": "make_com_stack",
-      "name": "Make.com (Visual Agent & Webhook Orchestration)",
+      "name": "Make.com (Visual Agent & Webhook Orchestration · 1 Mo Core Free)",
       "category": "No-Code / Hybrid Automation",
-      "commission": "20% recurring (12–24 months) [CẦN XÁC MINH]",
-      "badge": "RECOMMENDED INFRA",
-      "url": "https://www.make.com/en/register",
-      "disclosure": "Affiliate/partner slot — verify active partner link before campaign launch.",
-      "why_passing": "Explicit error-handler routes (Break / Resume / Ignore) prevent silent 200 drops."
+      "commission": "35% recurring (12 months · code: mcpguard)",
+      "badge": "LIVE OFFICIAL AFFILIATE",
+      "url": "https://www.make.com/en/register?pc=mcpguard",
+      "disclosure": "Official Make.com affiliate link — signups receive 1 month free Core plan (10,000 credits) at $0 extra cost.",
+      "why_passing": "Explicit error-handler routes (Break / Resume / Ignore) prevent silent 200 drops in production workflows."
     },
     {
-      "id": "apify_stack",
-      "name": "Apify Cloud Actors (Managed Scraping & MCP)",
-      "category": "Web Data & Agent Tools",
-      "commission": "20–30% recurring [CẦN XÁC MINH]",
-      "badge": "RECOMMENDED INFRA",
-      "url": "https://apify.com/",
-      "disclosure": "Affiliate/partner slot — verify active partner link before campaign launch.",
-      "why_passing": "Structured dataset schemas & run exit-status webhooks isolate upstream HTTP-200 soft blocks."
+      "id": "elevenlabs_stack",
+      "name": "ElevenLabs Agents & Voice AI (PartnerStack Verified)",
+      "category": "Voice & Conversational AI",
+      "commission": "22% recurring (12 months)",
+      "badge": "LIVE OFFICIAL AFFILIATE",
+      "url": "https://try.elevenlabs.io/6rq6xflhdggn",
+      "disclosure": "Official ElevenLabs PartnerStack affiliate link at $0 extra cost to you.",
+      "why_passing": "Production voice/agent platform with structured tool-call webhooks and low-latency streaming."
     }
   ],
   "published_paths": []
