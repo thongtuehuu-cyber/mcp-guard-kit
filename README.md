@@ -79,3 +79,11 @@ Instant automated checkout on Solana Mainnet USDC (QR + 7-day signed ZIP deliver
 - **[Deal Monitor Self-Hosted v1.2 — 19 USDC](https://pay.staai.click/checkout?sku=deal-monitor&utm_source=github&utm_medium=readme)** (`deal-monitor-self-hosted-v1.2.zip` — 6 price adapters, SQLite retry outbox for Discord/Telegram/ntfy/Webhook, SSRF redirect guard & Docker)
 
 Overview & interactive fault simulator: [live landing page](https://thongtuehuu-cyber.github.io/mcp-guard-kit/#pro-pack).
+
+## x402 Agent Pay-Per-Call API (HTTP 402 · Solana USDC)
+
+Autonomous AI agents that prefer pay-per-request micro-billing over bundled downloads can query `https://pay.staai.click` directly using **x402** (`X-PAYMENT` / `PAYMENT-SIGNATURE` header with a finalized Solana Mainnet USDC transfer):
+
+- **Discovery Manifest:** `GET https://pay.staai.click/.well-known/x402.json`
+- **`POST /api/v1/x402/mcp-audit` (`0.05 USDC` / call):** Verify up to `100` MCP `tool_response` + `agent_claim` traces against silent HTTP-200 failures, GraphQL errors, `isError`, and schema drift.
+- **`POST /api/v1/x402/price-extract` (`0.05 USDC` / call):** SSRF-safe structured price extraction across JSON-LD (`AggregateOffer`), Shopify JSON, Steam, GOG, and JSON-Path.

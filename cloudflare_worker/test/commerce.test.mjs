@@ -46,7 +46,7 @@ function transaction(reference, amount = 3250000) {
 // D1 has SQLite semantics. Only the binding envelope is adapted here.
 function binding() {
   const sqlite = new DatabaseSync(":memory:");
-  for (const name of ["0001_commerce.sql", "0002_offer_policy.sql", "0003_pending_payments.sql", "0004_product_sku.sql"]) {
+  for (const name of ["0001_commerce.sql", "0002_offer_policy.sql", "0003_pending_payments.sql", "0004_product_sku.sql", "0005_x402.sql"]) {
     sqlite.exec(readFileSync(new URL("../migrations/" + name, import.meta.url), "utf8"));
   }
   function prepare(sql, args = []) {
@@ -331,4 +331,95 @@ test("DEFAULT_SKU=solo resolves /checkout default order to 19 USDC Pro v1.2", as
   const order = await res.json();
   assert.equal(order.sku, "solo");
   assert.equal(order.amount, 19);
+});
+
+test("x402 pay-per-call gateway enforces 402, settles 0.05 USDC, rejects 409 replay mismatch, and blocks SSRF", async t => {
+  const { env, call } = setup(t);
+  const localFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = localFetch; });
+
+  // 1. Discovery manifest
+  const discRes = await call("/.well-known/x402.json");
+  assert.equal(discRes.status, 200);
+  assert.equal(discRes.headers.get("access-control-allow-origin"), "*");
+  const disc = await discRes.json();
+  assert.equal(disc.x402Version, 1);
+  assert.equal(disc.endpoints.length, 2);
+
+  // 2. Unpaid call returns HTTP 402 + PAYMENT-REQUIRED header
+  const auditBody = {
+    traces: [
+      {
+        case_id: "c1",
+        tool_name: "charge",
+        fault_id: "silent_error_200",
+        tool_response: { status_code: 200, body: { paid: false, error: "card_declined" } },
+        agent_claim: "Payment completed successfully!",
+        required_keys: ["charge_id"],
+      },
+    ],
+  };
+  const unpaid = await call("/api/v1/x402/mcp-audit", auditBody);
+  assert.equal(unpaid.status, 402);
+  const prHdr = JSON.parse(Buffer.from(unpaid.headers.get("payment-required"), "base64").toString("utf8"));
+  assert.equal(prHdr.accepts[0].maxAmountRequired, "50000");
+  assert.equal(prHdr.accepts[0].payTo, wallet);
+
+  // 3. Paid call with finalized 0.05 USDC SPL transfer
+  const xSig = "1".repeat(63) + "7";
+  const xRef = prHdr.accepts[0].extra.reference;
+  const tx5 = transaction(xRef, 50000);
+  tx5.transaction.signatures[0] = xSig;
+  globalThis.fetch = async () => Response.json({ result: tx5 });
+
+  const postPaid = (path, payload, payHdr) => worker.fetch(new Request(origin + path, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-payment": payHdr },
+    body: JSON.stringify(payload),
+  }), env, { waitUntil() {} });
+
+  const payHeader = JSON.stringify({ signature: xSig, reference: xRef });
+  const paidRes = await postPaid("/api/v1/x402/mcp-audit", auditBody, payHeader);
+  assert.equal(paidRes.status, 200);
+  const auditJson = await paidRes.json();
+  assert.equal(auditJson.hallucinations, 1);
+  assert.equal(auditJson.results[0].verdict, "FAIL_HALLUCINATION");
+  const prMeta = JSON.parse(Buffer.from(paidRes.headers.get("x-payment-response"), "base64").toString("utf8"));
+  assert.equal(prMeta.settled, true);
+  assert.equal(prMeta.replayed, false);
+
+  // 4. Idempotent replay with same body returns 200 replayed=true; different body returns 409
+  const replayRes = await postPaid("/api/v1/x402/mcp-audit", auditBody, payHeader);
+  assert.equal(replayRes.status, 200);
+  assert.equal(JSON.parse(Buffer.from(replayRes.headers.get("x-payment-response"), "base64").toString("utf8")).replayed, true);
+  const mismatchRes = await postPaid("/api/v1/x402/mcp-audit", {
+    traces: [{ ...auditBody.traces[0], case_id: "c2" }],
+  }, payHeader);
+  assert.equal(mismatchRes.status, 409);
+
+  // 5. Paid x402 event emitted once to telemetry feed (viewed from trigger + paid)
+  const { events } = await (await call("/api/funnel/events", null, "Bearer local-feed")).json();
+  assert.deepEqual(events.map(e => e.stage), ["viewed", "paid"]);
+  assert.equal(events[1].amount_cents, 5);
+
+  // 6. price-extract rejects SSRF / http before consuming signature, and extracts JSON-LD + Shopify
+  const ssrfRes = await postPaid("/api/v1/x402/price-extract", {
+    adapter: "jsonld", currency: "USD", url: "https://169.254.169.254/latest/meta-data",
+  }, JSON.stringify({ signature: "1".repeat(63) + "8" }));
+  assert.equal(ssrfRes.status, 400);
+
+  const pSig = "1".repeat(63) + "9";
+  const pRef = newReference();
+  const txPrice = transaction(pRef, 50000);
+  txPrice.transaction.signatures[0] = pSig;
+  globalThis.fetch = async () => Response.json({ result: txPrice });
+  const priceRes = await postPaid("/api/v1/x402/price-extract", {
+    adapter: "jsonld",
+    currency: "USD",
+    html: '<script type="application/ld+json">{"@type":"Product","name":"Pro","offers":{"@type":"AggregateOffer","lowPrice":"19.00","priceCurrency":"USD"}}</script>',
+  }, JSON.stringify({ signature: pSig, reference: pRef }));
+  assert.equal(priceRes.status, 200);
+  const priceData = await priceRes.json();
+  assert.equal(priceData.price_cents, 1900);
+  assert.equal(priceData.price, 19);
 });

@@ -2,6 +2,7 @@ import { resolveProduct, SKU_CATALOG } from "./catalog.mjs";
 import { confirmPayment, newReference, reconcilePending, solanaLink } from "./payments.mjs";
 import { deliverOrder, digest, downloadLink, getFile, retryDue, validToken } from "./delivery.mjs";
 import { checkoutPage } from "./checkout.mjs";
+import { handleX402 } from "./x402.mjs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const REFERENCE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -202,7 +203,10 @@ async function feed(req, env, url) {
 async function route(req, env, ctx) {
   const url = new URL(req.url);
   const origin = env.PUBLIC_ORIGIN || url.origin;
-  if (req.method === "GET" && url.pathname === "/") return json({ ok: true, service: "mcp-guard-solana-fulfillment" });
+  if (req.method === "GET" && url.pathname === "/") return json({ ok: true, service: "mcp-guard-solana-fulfillment", x402_catalog: origin + "/.well-known/x402.json" });
+  if (url.pathname === "/.well-known/x402.json" || url.pathname.startsWith("/api/v1/x402/")) {
+    return handleX402(req, env, url, origin);
+  }
   if (req.method === "GET" && url.pathname === "/checkout") {
     if (!env.COMMERCE_DB || !env.HMAC_SECRET || !(env.PRO_FILES || env.PRO_FILES_KV || env.PRO_ZIP_PRIVATE_URL))
       return json({ error: "Checkout unavailable" }, 503);
