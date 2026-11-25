@@ -344,7 +344,7 @@ test("x402 pay-per-call gateway enforces 402, settles 0.05 USDC, rejects 409 rep
   assert.equal(discRes.headers.get("access-control-allow-origin"), "*");
   const disc = await discRes.json();
   assert.equal(disc.x402Version, 1);
-  assert.equal(disc.endpoints.length, 5);
+  assert.equal(disc.endpoints.length, 7);
 
   // 2. Unpaid call returns HTTP 402 + PAYMENT-REQUIRED header
   const auditBody = {
@@ -518,4 +518,96 @@ test("x402 v2 endpoints: pr-critic (0.15 USDC), blind-judge (0.10 USDC), and bou
   const feedJson = await feedRes.json();
   assert.equal(feedJson.count, 1);
   assert.equal(feedJson.items[0].bounty_usd, 250);
+});
+
+test("x402 v3 endpoints: stealth-extract (0.05 USDC) and quant-overfit-score (0.25 USDC)", async t => {
+  const { env, call } = setup(t);
+  const localFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = localFetch; });
+
+  const postPaid = (path, payload, payHdr) => worker.fetch(new Request(origin + path, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-payment": payHdr },
+    body: JSON.stringify(payload),
+  }), env, { waitUntil() {} });
+
+  // 1. stealth-extract 402 + SSRF block + settled 200 HTML/JSON-LD extraction
+  const unpExt = await call("/api/v1/x402/stealth-extract", { html: "<h1>Hi</h1>" });
+  assert.equal(unpExt.status, 402);
+  const extHdr = JSON.parse(Buffer.from(unpExt.headers.get("payment-required"), "base64").toString("utf8"));
+  assert.equal(extHdr.accepts[0].maxAmountRequired, "50000");
+
+  const ssrfExt = await postPaid(
+    "/api/v1/x402/stealth-extract",
+    { url: "https://127.0.0.1/secret" },
+    JSON.stringify({ signature: "1".repeat(63) + "e" })
+  );
+  assert.equal(ssrfExt.status, 400);
+
+  const sigE = "1".repeat(63) + "f";
+  const refE = extHdr.accepts[0].extra.reference;
+  const txE = transaction(refE, 50000);
+  txE.transaction.signatures[0] = sigE;
+  globalThis.fetch = async () => Response.json({ result: txE });
+
+  const extRes = await postPaid(
+    "/api/v1/x402/stealth-extract",
+    {
+      html: '<html><head><title>Audit Demo</title><script type="application/ld+json">{"@type":"SoftwareApplication","name":"mcp-guard"}</script></head><body><h1>Main Header</h1><p>Clean body text.</p></body></html>',
+    },
+    JSON.stringify({ signature: sigE, reference: refE })
+  );
+  assert.equal(extRes.status, 200);
+  const extData = await extRes.json();
+  assert.equal(extData.title, "Audit Demo");
+  assert.equal(extData.headings[0].text, "Main Header");
+  assert.equal(extData.jsonld_count, 1);
+
+  // 2. quant-overfit-score 402 + validation 400 + noisy REJECTED_OVERFIT + strong APPROVED_EDGE
+  const unpQ = await call("/api/v1/x402/quant-overfit-score", { returns: Array(30).fill(0.001) });
+  assert.equal(unpQ.status, 402);
+  const qHdr = JSON.parse(Buffer.from(unpQ.headers.get("payment-required"), "base64").toString("utf8"));
+  assert.equal(qHdr.accepts[0].maxAmountRequired, "250000");
+
+  const badQ = await postPaid(
+    "/api/v1/x402/quant-overfit-score",
+    { returns: [0.01, 0.02] },
+    JSON.stringify({ signature: "1".repeat(63) + "g" })
+  );
+  assert.equal(badQ.status, 400);
+
+  // Noisy returns with 80 trials -> REJECTED_OVERFIT
+  const sigQ1 = "1".repeat(63) + "h";
+  const refQ1 = qHdr.accepts[0].extra.reference;
+  const txQ1 = transaction(refQ1, 250000);
+  txQ1.transaction.signatures[0] = sigQ1;
+  globalThis.fetch = async () => Response.json({ result: txQ1 });
+  const noisy = Array.from({ length: 60 }, (_, i) => (i % 2 === 0 ? 0.011 : -0.010));
+  const qRes1 = await postPaid(
+    "/api/v1/x402/quant-overfit-score",
+    { returns: noisy, n_trials: 80, cost_bps: 15 },
+    JSON.stringify({ signature: sigQ1, reference: refQ1 })
+  );
+  assert.equal(qRes1.status, 200);
+  const qJson1 = await qRes1.json();
+  assert.equal(qJson1.verdict, "REJECTED_OVERFIT");
+  assert.equal(qJson1.paper_only, true);
+
+  // Strong clean return series with 2 trials -> APPROVED_EDGE & Quarter-Kelly <= 0.25
+  const sigQ2 = "1".repeat(63) + "i";
+  const refQ2 = newReference();
+  const txQ2 = transaction(refQ2, 250000);
+  txQ2.transaction.signatures[0] = sigQ2;
+  globalThis.fetch = async () => Response.json({ result: txQ2 });
+  const strong = Array.from({ length: 120 }, (_, i) => (i % 5 === 0 ? -0.002 : 0.009));
+  const qRes2 = await postPaid(
+    "/api/v1/x402/quant-overfit-score",
+    { returns: strong, n_trials: 2, cost_bps: 10 },
+    JSON.stringify({ signature: sigQ2, reference: refQ2 })
+  );
+  assert.equal(qRes2.status, 200);
+  const qJson2 = await qRes2.json();
+  assert.equal(qJson2.verdict, "APPROVED_EDGE");
+  assert.ok(qJson2.deflated_sharpe_prob >= 0.95);
+  assert.ok(qJson2.quarter_kelly_cap > 0 && qJson2.quarter_kelly_cap <= 0.25);
 });

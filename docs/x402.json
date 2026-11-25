@@ -34,6 +34,18 @@
       "amount_usdc": "0.05",
       "origin": "https://pay.staai.click",
       "name": "Verified 0-PR Bounty & High-EV Arena Feed"
+    },
+    {
+      "path": "/api/v1/x402/stealth-extract",
+      "amount_usdc": "0.05",
+      "origin": "https://pay.staai.click",
+      "name": "SSRF-Safe Structured HTML & JSON-LD Extractor"
+    },
+    {
+      "path": "/api/v1/x402/quant-overfit-score",
+      "amount_usdc": "0.25",
+      "origin": "https://pay.staai.click",
+      "name": "Quant Overfit & Deflated Sharpe Ratio (DSR) Auditor"
     }
   ],
   "compute_endpoints": [
@@ -78,5 +90,5 @@
   "quant_court": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/quant-court.html",
   "tools": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html",
   "makefun_referral": "https://make.fun/r/p1eh1d2g",
-  "updated_at": "2026-11-25T10:28:56.549180+00:00"
+  "updated_at": "2026-11-25T11:45:33.548822+00:00"
 }

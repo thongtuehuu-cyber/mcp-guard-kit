@@ -13,6 +13,8 @@
 - `POST https://pay.staai.click/api/v1/x402/pr-critic` — **$0.15 USDC** — PR Diff Critic & Anti-Hallucination Gate
 - `POST https://pay.staai.click/api/v1/x402/blind-judge` — **$0.10 USDC** — Swap-Debiased Pairwise Blind Judge
 - `POST https://pay.staai.click/api/v1/x402/bounty-feed` — **$0.05 USDC** — Verified 0-PR Bounty & High-EV Arena Feed
+- `POST https://pay.staai.click/api/v1/x402/stealth-extract` — **$0.05 USDC** — SSRF-Safe Structured HTML & JSON-LD Extractor
+- `POST https://pay.staai.click/api/v1/x402/quant-overfit-score` — **$0.25 USDC** — Quant Overfit & Deflated Sharpe Ratio (DSR) Auditor
 
 ## Heavy-Compute x402 Verification Services
 - `POST /api/x402/audit-diff` — **$0.25 USDC** — Dual-Brain AST Anti-Cheat & Security Diff Auditor: Audits git diffs for deleted/weakened assertions, pytest.skip cheats, secret leaks, and GitHub Actions script injections; returns SHA-256 attestation.

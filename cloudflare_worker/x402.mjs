@@ -82,6 +82,31 @@ export const X402_ENDPOINTS = {
     label: "x402: Bounty Feed",
     inputExample: { min_usd: 50, limit: 10 },
   },
+  "/api/v1/x402/stealth-extract": {
+    path: "/api/v1/x402/stealth-extract",
+    name: "SSRF-Safe Structured HTML, Headings & JSON-LD Extractor",
+    description: "Extracts page title, H1-H3 headings, Schema.org JSON-LD blocks, and clean normalized text from inline HTML or SSRF-checked public HTTPS URLs.",
+    micros: 50000,
+    amountUsdc: "0.05",
+    label: "x402: Stealth Extract",
+    inputExample: {
+      html: "<html><head><title>MCP Scoreboard</title></head><body><h1>Live Audit</h1><p>Zero-dependency MCP verifier.</p></body></html>",
+    },
+  },
+  "/api/v1/x402/quant-overfit-score": {
+    path: "/api/v1/x402/quant-overfit-score",
+    name: "Quant Overfit & Deflated Sharpe Ratio (DSR) Auditor",
+    description: "Computes Bailey & Lopez de Prado Deflated Sharpe Ratio (DSR), multiple-testing noise haircut, 2x cost-stressed Sharpe, max drawdown, and Quarter-Kelly position cap on any paper-only return series.",
+    micros: 250000,
+    amountUsdc: "0.25",
+    label: "x402: Quant Overfit DSR",
+    inputExample: {
+      returns: [0.004, -0.001, 0.005, 0.002, -0.002, 0.006, 0.003, -0.001, 0.004, 0.002, 0.005, -0.001, 0.003, 0.004, 0.001, -0.002, 0.005, 0.002, 0.004, 0.003],
+      n_trials: 10,
+      cost_bps: 10,
+      periods_per_year: 252,
+    },
+  },
 };
 
 function xJson(data, status = 200, extraHeaders = {}) {
@@ -501,7 +526,7 @@ function catalogManifest(origin) {
     network: "solana-mainnet",
     asset: USDC,
     currency: "USDC",
-    capabilities: ["x402-v1", "solana-usdc", "mcp-guard", "pr-critic", "blind-judge", "bounty-feed"],
+    capabilities: ["x402-v1", "solana-usdc", "mcp-guard", "pr-critic", "blind-judge", "bounty-feed", "stealth-extract", "quant-overfit-score"],
     paymentHeaders: ["X-PAYMENT", "PAYMENT-SIGNATURE"],
     discovery: origin + "/.well-known/x402.json",
     endpoints: Object.values(X402_ENDPOINTS).map(ep => ({
@@ -513,6 +538,14 @@ function catalogManifest(origin) {
       amountUsdc: ep.amountUsdc,
       inputExample: ep.inputExample,
     })),
+    publicResources: {
+      scoreboard: "https://thongtuehuu-cyber.github.io/mcp-guard-kit/scoreboard.html",
+      tools: "https://thongtuehuu-cyber.github.io/mcp-guard-kit/tools.html",
+      quantCourt: "https://thongtuehuu-cyber.github.io/mcp-guard-kit/quant-court.html",
+      starterKit: "https://github.com/thongtuehuu-cyber/makefun-agent-starter-kit",
+      makefunReferral: "https://make.fun/r/p1eh1d2g",
+      llmsTxt: "https://thongtuehuu-cyber.github.io/mcp-guard-kit/llms.txt",
+    },
     selfHostedBundles: {
       soloProV12: origin + "/checkout?sku=solo",
       teamCiPackV12: origin + "/checkout?sku=team",
@@ -731,6 +764,191 @@ export async function queryBountyFeed(env, body) {
   };
 }
 
+
+function erfApprox(x) {
+  const sign = x < 0 ? -1 : 1;
+  const ax = Math.abs(x);
+  const t = 1.0 / (1.0 + 0.3275911 * ax);
+  const y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-ax * ax);
+  return sign * y;
+}
+
+function normCdf(z) {
+  return 0.5 * (1.0 + erfApprox(z / Math.SQRT2));
+}
+
+function invNormCdf(p) {
+  const clamped = Math.min(1 - 1e-12, Math.max(1e-12, p));
+  // Beasley-Springer-Moro rational approximation
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+  const pLow = 0.02425;
+  const pHigh = 1 - pLow;
+  if (clamped < pLow) {
+    const q = Math.sqrt(-2 * Math.log(clamped));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+           ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (clamped <= pHigh) {
+    const q = clamped - 0.5;
+    const r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+           (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
+  const q = Math.sqrt(-2 * Math.log(1 - clamped));
+  return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+          ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+}
+
+export function validateStealthExtractInput(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Expected JSON object");
+  const hasHtml = typeof body.html === "string" && body.html.trim().length > 0;
+  const hasUrl = typeof body.url === "string" && body.url.trim().length > 0;
+  if (!hasHtml && !hasUrl) throw new Error("Provide inline 'html' or public HTTPS 'url'");
+  if (hasUrl && !hasHtml) validateSafeHttpsUrl(body.url);
+}
+
+function stripTagsAndSpace(s) {
+  return String(s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export async function runStealthExtract(body) {
+  validateStealthExtractInput(body);
+  let rawHtml = typeof body.html === "string" ? body.html : "";
+  let source = "inline_html";
+  if (!rawHtml.trim() && body.url) {
+    const resp = await safeHttpsFetch(body.url);
+    rawHtml = (await resp.text()).slice(0, 250000);
+    source = String(body.url);
+  }
+  const maxChars = Math.max(200, Math.min(8000, Math.round(Number(body.max_chars || 2500) || 2500)));
+  const titleMatch = rawHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleMatch ? stripTagsAndSpace(titleMatch[1]) : "";
+  const headings = [];
+  const hRe = /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  let hm;
+  while ((hm = hRe.exec(rawHtml)) !== null && headings.length < 20) {
+    const clean = stripTagsAndSpace(hm[2]);
+    if (clean) headings.push({ level: Number(hm[1]), text: clean });
+  }
+  const jsonld = [];
+  const ldRe = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let ldm;
+  while ((ldm = ldRe.exec(rawHtml)) !== null && jsonld.length < 8) {
+    try { jsonld.push(JSON.parse(ldm[1])); } catch {}
+  }
+  const cleanText = stripTagsAndSpace(
+    rawHtml
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ")
+  );
+  return {
+    ok: true,
+    service: "stealth-extract-x402",
+    source,
+    title,
+    headings,
+    jsonld_count: jsonld.length,
+    jsonld,
+    text_excerpt: cleanText.slice(0, maxChars),
+    char_count: cleanText.length,
+  };
+}
+
+export function evaluateQuantOverfitScore(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Expected JSON object");
+  const rawArr = body.returns;
+  if (!Array.isArray(rawArr) || rawArr.length < 20 || rawArr.length > 5000) {
+    throw new Error("Provide 'returns' array with 20..5000 finite periodic returns");
+  }
+  const rets = rawArr.map(Number);
+  if (rets.some(x => !Number.isFinite(x) || Math.abs(x) > 10)) {
+    throw new Error("All 'returns' entries must be finite numbers in [-10, 10]");
+  }
+  const nTrials = Math.max(1, Math.min(100000, Math.round(Number(body.n_trials || 1) || 1)));
+  const costBps = Math.max(0, Math.min(500, Number(body.cost_bps ?? 10) || 0));
+  const turnover = Math.max(0, Math.min(2, Number(body.turnover_per_period ?? 0.25) || 0.25));
+  const periodsPerYear = Math.max(1, Math.min(8760, Number(body.periods_per_year || 252) || 252));
+
+  const T = rets.length;
+  const mean = rets.reduce((a, b) => a + b, 0) / T;
+  const variance = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, T - 1);
+  const std = Math.sqrt(variance);
+  const srPerBar = std > 1e-12 ? mean / std : 0;
+  const annSr = srPerBar * Math.sqrt(periodsPerYear);
+
+  // Sample skewness & kurtosis
+  let m3 = 0, m4 = 0;
+  for (const r of rets) {
+    const d = r - mean;
+    m3 += d ** 3;
+    m4 += d ** 4;
+  }
+  const skew = std > 1e-12 ? (m3 / T) / (std ** 3) : 0;
+  const kurt = std > 1e-12 ? (m4 / T) / (std ** 4) : 3;
+
+  // Expected maximum noise Sharpe under N independent trials (Bailey & Lopez de Prado 2014)
+  const gamma = 0.5772156649015329;
+  const srTrialStd = 1.0 / Math.sqrt(Math.max(1, T - 1));
+  const expectedMaxNoiseSrBar = nTrials <= 1
+    ? 0
+    : srTrialStd * ((1 - gamma) * invNormCdf(1 - 1 / nTrials) + gamma * invNormCdf(1 - 1 / (nTrials * Math.E)));
+  const expectedMaxNoiseAnnSr = expectedMaxNoiseSrBar * Math.sqrt(periodsPerYear);
+
+  // Deflated Sharpe Ratio probability
+  const denomTerm = Math.max(1e-6, 1 - skew * srPerBar + ((kurt - 1) / 4) * srPerBar * srPerBar);
+  const zDsr = ((srPerBar - expectedMaxNoiseSrBar) * Math.sqrt(Math.max(1, T - 1))) / Math.sqrt(denomTerm);
+  const dsrProb = normCdf(zDsr);
+
+  // 2x Cost Stress test
+  const drag2x = 2 * (costBps / 10000) * turnover;
+  const stressedMean = mean - drag2x;
+  const stressedAnnSr = std > 1e-12 ? (stressedMean / std) * Math.sqrt(periodsPerYear) : 0;
+
+  // Equity curve max drawdown
+  let eq = 1.0, peak = 1.0, maxDd = 0.0;
+  for (const r of rets) {
+    eq *= Math.max(0.01, 1 + r);
+    if (eq > peak) peak = eq;
+    const dd = (peak - eq) / peak;
+    if (dd > maxDd) maxDd = dd;
+  }
+
+  // Quarter-Kelly sizing cap (never > 25%)
+  const rawKelly = variance > 1e-12 ? Math.max(0, mean / variance) : 0;
+  const fullKelly = Math.min(1.0, rawKelly);
+  const quarterKelly = Math.min(0.25, fullKelly * 0.25);
+
+  const reasons = [];
+  if (dsrProb < 0.95) reasons.push(`dsr_below_0.95 (${dsrProb.toFixed(4)})`);
+  if (annSr <= 0.5) reasons.push(`annualized_sharpe_low (${annSr.toFixed(2)})`);
+  if (stressedAnnSr <= 0) reasons.push(`fails_2x_cost_stress (${stressedAnnSr.toFixed(2)})`);
+  if (maxDd > 0.35) reasons.push(`excessive_drawdown (${(maxDd * 100).toFixed(1)}%)`);
+
+  const verdict = reasons.length === 0 ? "APPROVED_EDGE" : "REJECTED_OVERFIT";
+  return {
+    ok: true,
+    service: "quant-overfit-score-x402",
+    paper_only: true,
+    verdict,
+    observations: T,
+    n_trials: nTrials,
+    annualized_sharpe: Math.round(annSr * 1000) / 1000,
+    expected_max_noise_sharpe: Math.round(expectedMaxNoiseAnnSr * 1000) / 1000,
+    deflated_sharpe_prob: Math.round(dsrProb * 10000) / 10000,
+    cost_stressed_2x_sharpe: Math.round(stressedAnnSr * 1000) / 1000,
+    max_drawdown_pct: Math.round(maxDd * 10000) / 100,
+    full_kelly_fraction: Math.round(fullKelly * 10000) / 10000,
+    quarter_kelly_cap: Math.round(quarterKelly * 10000) / 10000,
+    skewness: Math.round(skew * 1000) / 1000,
+    kurtosis: Math.round(kurt * 1000) / 1000,
+    reasons,
+  };
+}
+
 export async function handleX402(req, env, url, origin) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
   if (req.method === "GET" && (url.pathname === "/.well-known/x402.json" || url.pathname === "/api/v1/x402/catalog")) {
@@ -786,6 +1004,8 @@ export async function handleX402(req, env, url, origin) {
     else if (ep.path === "/api/v1/x402/pr-critic") evaluatePrCritic(body);
     else if (ep.path === "/api/v1/x402/blind-judge") evaluateBlindJudge(body);
     else if (ep.path === "/api/v1/x402/bounty-feed") validateBountyFeedInput(body);
+    else if (ep.path === "/api/v1/x402/stealth-extract") validateStealthExtractInput(body);
+    else if (ep.path === "/api/v1/x402/quant-overfit-score") evaluateQuantOverfitScore(body);
   } catch (err) {
     return xJson({ error: err.message || "Invalid request payload" }, 400);
   }
@@ -815,6 +1035,8 @@ export async function handleX402(req, env, url, origin) {
     else if (ep.path === "/api/v1/x402/price-extract") result = await extractPricePayload(body);
     else if (ep.path === "/api/v1/x402/pr-critic") result = evaluatePrCritic(body);
     else if (ep.path === "/api/v1/x402/blind-judge") result = evaluateBlindJudge(body);
+    else if (ep.path === "/api/v1/x402/stealth-extract") result = await runStealthExtract(body);
+    else if (ep.path === "/api/v1/x402/quant-overfit-score") result = evaluateQuantOverfitScore(body);
     else result = await queryBountyFeed(env, body);
   } catch (err) {
     return xJson({ error: err.message || "Execution failed" }, 422);
