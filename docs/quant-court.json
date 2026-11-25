@@ -1,7 +1,7 @@
 {
   "ok": true,
   "paper_only": true,
-  "generated_at": "2026-11-25T10:28:56.524995+00:00",
+  "generated_at": "2026-11-25T14:49:41.760879+00:00",
   "lab_available": true,
   "summary": {
     "total_cases": 5,
@@ -36,7 +36,7 @@
         "bnh_sharpe": -0.538,
         "fold_hit_ratio": 0.75,
         "plateau_retention": 0.462,
-        "p_reopt_bar_perm": 0.24,
+        "p_reopt_bar_perm": 0.2381,
         "p_block_perm": 0.1975,
         "dsr_prob": 0.4491,
         "max_drawdown": -0.3267,
@@ -76,7 +76,7 @@
         "bnh_sharpe": -0.115,
         "fold_hit_ratio": 0.75,
         "plateau_retention": -1.262,
-        "p_reopt_bar_perm": 0.48,
+        "p_reopt_bar_perm": 0.5238,
         "p_block_perm": 0.3086,
         "dsr_prob": 0.0686,
         "max_drawdown": -0.3411,
@@ -112,7 +112,7 @@
         "bnh_sharpe": -1.803,
         "fold_hit_ratio": 1.0,
         "plateau_retention": 0.754,
-        "p_reopt_bar_perm": 0.04,
+        "p_reopt_bar_perm": 0.0476,
         "p_block_perm": 0.0123,
         "dsr_prob": 1.0,
         "max_drawdown": -0.2796,
@@ -147,7 +147,7 @@
         "bnh_sharpe": 0.142,
         "fold_hit_ratio": 1.0,
         "plateau_retention": 0.754,
-        "p_reopt_bar_perm": 0.04,
+        "p_reopt_bar_perm": 0.0476,
         "p_block_perm": 0.0123,
         "dsr_prob": 1.0,
         "max_drawdown": -0.0902,
@@ -166,33 +166,36 @@
       "family": "tsmom",
       "symbol": "BTC/USDT",
       "timeframe": "1d",
-      "data_source": "live:BTC/USDT:1d",
-      "bars": 2189,
+      "data_source": "fallback_synthetic:noise (Cannot save file into a non-existent directory: '/home/svhome/DEV/mit_quant_lab/.mit_quant_lab_data/cache')",
+      "bars": 1800,
       "verdict": "REJECTED_OVERFIT",
       "failed_gates": [
-        "G3_BarPermutation_DSR"
+        "G1_OOS_WalkForward",
+        "G2_ParameterPlateau",
+        "G3_BarPermutation_DSR",
+        "G4_2xCostStress"
       ],
       "gates": {
-        "G1_walk_forward": true,
-        "G2_plateau": true,
+        "G1_walk_forward": false,
+        "G2_plateau": false,
         "G3_bar_perm_dsr": false,
-        "G4_cost_2x": true
+        "G4_cost_2x": false
       },
       "metrics": {
-        "oos_gross_sharpe": 0.916,
-        "oos_net_sharpe": 0.759,
-        "stress_2x_sharpe": 0.6,
-        "bnh_sharpe": 0.931,
-        "fold_hit_ratio": 1.0,
-        "plateau_retention": 0.561,
-        "p_reopt_bar_perm": 0.08,
-        "p_block_perm": 0.0617,
-        "dsr_prob": 0.6084,
-        "max_drawdown": -0.6344,
-        "continuous_kelly": 0.25
+        "oos_gross_sharpe": -0.297,
+        "oos_net_sharpe": -0.495,
+        "stress_2x_sharpe": -0.696,
+        "bnh_sharpe": 0.587,
+        "fold_hit_ratio": 0.75,
+        "plateau_retention": -0.057,
+        "p_reopt_bar_perm": 0.0952,
+        "p_block_perm": 1.0,
+        "dsr_prob": 0.0207,
+        "max_drawdown": -0.448,
+        "continuous_kelly": 0.0
       },
       "best_params": {
-        "lookback": 40
+        "lookback": 200
       },
       "case_id": "live_btc_tsmom"
     }
