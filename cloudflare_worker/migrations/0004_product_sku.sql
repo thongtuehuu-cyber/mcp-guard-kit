@@ -1,0 +1,1 @@
+ALTER TABLE orders ADD COLUMN sku TEXT NOT NULL DEFAULT 'starter';

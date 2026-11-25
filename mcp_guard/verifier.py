@@ -62,7 +62,34 @@ class AuditSummary:
 
 
 def _detect_tool_failure(resp: dict[str, Any], required_keys: list[str]) -> tuple[bool, list[str]]:
+    if not isinstance(resp, dict):
+        return True, ["invalid_response_type"]
     reasons: list[str] = []
+    result = resp.get("result") if resp.get("jsonrpc") == "2.0" else resp
+    if isinstance(result, dict) and any(k in result for k in ("content", "structuredContent", "isError")):
+        if result.get("isError") is True:
+            reasons.append("mcp_is_error_true")
+        if required_keys:
+            data = result.get("structuredContent")
+            if data is None:
+                blocks = result.get("content")
+                if isinstance(blocks, list) and len(blocks) == 1 and isinstance(blocks[0], dict):
+                    try:
+                        data = json.loads(blocks[0].get("text", ""))
+                    except (ValueError, TypeError):
+                        pass
+            missing = [k for k in required_keys if not isinstance(data, dict) or k not in data]
+            if missing:
+                reasons.append(f"missing_required_keys={','.join(missing)}")
+        if not isinstance(result.get("content"), list) and not isinstance(result.get("structuredContent"), dict):
+            reasons.append("invalid_mcp_content")
+        if resp.get("ok") is False or resp.get("truncated") or resp.get("error"):
+            reasons.append("transport_error")
+        status = resp.get("status_code")
+        if isinstance(status, int) and (status == 207 or status >= 400):
+            reasons.append(f"http_status_{status}")
+        return bool(reasons), reasons
+
     if resp.get("ok") is False:
         reasons.append("tool_ok_false")
     status_code = resp.get("status_code")

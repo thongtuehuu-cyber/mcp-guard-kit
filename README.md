@@ -62,13 +62,20 @@ res = verify_trace(
 assert res.verdict == "FAIL_HALLUCINATION"
 ```
 
-## Pro Automation Pack ($3.25)
+## Pro Automation Suite v1.2 & Deal Monitor ($19–$79 USDC · 0% Fee)
 
-Need live JSON-RPC protocol proxies, ecosystem chaos catalogs, native pytest fixtures, and security-gate reports out of the box? **MCP Guard Kit Pro v1.1 ($3.25 one-time)** adds:
+Need live JSON-RPC protocol proxies, 30 production chaos scenarios, native pytest fixtures, policy gates, and security-gate reports out of the box? **MCP Guard Kit Pro v1.2** adds:
 
-- **24 Production MCP Chaos Scenarios** (Stripe, GitHub, Postgres, Slack, Playwright — `HTTP 200` declines, GraphQL partial errors, `SQLSTATE 40P01/57014/25006`, `429 Retry-After`, schema drift, detached DOM nodes)
-- **Live `proxy-stdio` & `proxy-http` Chaos Proxies** wrapping real upstream MCP servers (NDJSON + `Content-Length` framing + JSONL capture)
+- **30 Production MCP Chaos Scenarios** across **Stripe, GitHub, Postgres, Slack, Playwright & MCP Core** (`96 / 96 = 100.0%` caught, `0` false alarms in the 120-trial `seed=42` benchmark)
+- **Live `proxy-stdio` & Streamable-HTTP Chaos Proxies** wrapping real upstream MCP servers (stderr-safe framing, `--rules-file`, JSONL capture)
+- **Policy Gates, Scaffolding & Regression Replay**: `mcp-guard-pro init`, `--policy` JSON gates, `distill` / `replay` sanitized trace generator
 - **Native Pytest Plugin (`pytest11`)**: `mcp_chaos`, `mcp_assert_honest`, `mcp_stdio_proxy`, `mcp_http_proxy`
 - **SARIF 2.1.0, JUnit XML & Executive HTML Reports** + ready-to-use GitHub Actions PR gate + perpetual commercial license
 
-Get the Pro Pack on the [live landing page](https://thongtuehuu-cyber.github.io/mcp-guard-kit/#pro-pack).
+Instant automated checkout on Solana Mainnet USDC (QR + 7-day signed ZIP delivery, no account required):
+
+- **[Solo Pro v1.2 — 19 USDC](https://pay.staai.click/checkout?sku=solo&utm_source=github&utm_medium=readme)** (`mcp-guard-kit-pro-v1.2.zip`)
+- **[Team CI Pack v1.2 — 79 USDC](https://pay.staai.click/checkout?sku=team&utm_source=github&utm_medium=readme)** (unlimited org repos & CI runners)
+- **[Deal Monitor Self-Hosted v1.2 — 19 USDC](https://pay.staai.click/checkout?sku=deal-monitor&utm_source=github&utm_medium=readme)** (`deal-monitor-self-hosted-v1.2.zip` — 6 price adapters, SQLite retry outbox for Discord/Telegram/ntfy/Webhook, SSRF redirect guard & Docker)
+
+Overview & interactive fault simulator: [live landing page](https://thongtuehuu-cyber.github.io/mcp-guard-kit/#pro-pack).

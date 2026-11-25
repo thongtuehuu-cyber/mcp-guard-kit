@@ -1,3 +1,4 @@
+import { resolveProduct, SKU_CATALOG } from "./catalog.mjs";
 import { confirmPayment, newReference, reconcilePending, solanaLink } from "./payments.mjs";
 import { deliverOrder, digest, downloadLink, getFile, retryDue, validToken } from "./delivery.mjs";
 import { checkoutPage } from "./checkout.mjs";
@@ -70,18 +71,26 @@ async function start(env, body, legacy = false) {
     await db.prepare("INSERT OR IGNORE INTO visits(id,radar_ref,variant,created_at,exploration) VALUES(?,?,?,?,1)")
       .bind(body.visit, fallbackRef, "control", Date.now()).run();
   }
+  const product = resolveProduct(body.sku, env);
+  if (!product) return json({ error: "Unknown product SKU" }, 400);
   const hash = await digest(body.access);
-  const price = Number(env.PRICE_MICROS ?? 3250000);
+  const price = product.micros;
   if (!Number.isSafeInteger(price) || price < 10000 || price % 10000 || !REFERENCE.test(env.MERCHANT_WALLET))
     throw new Error("Invalid merchant settings");
   await db.prepare(
-    "INSERT OR IGNORE INTO orders(reference,visit_id,email,access_hash,expected_micros,created_at) VALUES(?,?,?,?,?,?)"
-  ).bind(legacy ? body.reference_pubkey : newReference(), body.visit, email, hash, price, Date.now()).run();
+    "INSERT OR IGNORE INTO orders(reference,visit_id,email,access_hash,expected_micros,sku,created_at) VALUES(?,?,?,?,?,?,?)"
+  ).bind(legacy ? body.reference_pubkey : newReference(), body.visit, email, hash, price, product.sku, Date.now()).run();
   const order = await db.prepare("SELECT * FROM orders WHERE visit_id=?").bind(body.visit).first();
   if (legacy && order?.reference === body.reference_pubkey && order.email === email) return json({ ok: true, reference: order.reference });
   if (!order || order.access_hash !== hash || order.email !== email) return json({ error: "Visit already used" }, 409);
-  return json({ reference: order.reference, payment_url: solanaLink(env.MERCHANT_WALLET, order),
-    amount: order.expected_micros / 1000000 });
+  const orderProduct = resolveProduct(order.sku || product.sku, env) || product;
+  return json({
+    reference: order.reference,
+    sku: orderProduct.sku,
+    product_name: orderProduct.name,
+    payment_url: solanaLink(env.MERCHANT_WALLET, order, orderProduct.name),
+    amount: order.expected_micros / 1000000,
+  });
 }
 
 async function receipt(req, env, body, operation, origin, ctx) {
@@ -104,11 +113,27 @@ async function receipt(req, env, body, operation, origin, ctx) {
       .bind(order.reference, body.release, Date.now()).run();
     return json({ accepted: true });
   }
-  const current = await db.prepare("SELECT signature,mail_id FROM orders WHERE reference=?")
+  const current = await db.prepare("SELECT signature,mail_id,sku,expected_micros FROM orders WHERE reference=?")
     .bind(order.reference).first();
-  if (!current.signature) return json({ state: "awaiting_payment", payment_url: solanaLink(env.MERCHANT_WALLET, order) });
-  return json({ state: "paid", email_accepted: Boolean(current.mail_id),
-    download: await downloadLink(origin, env, current.signature) });
+  const product = resolveProduct(current.sku || "", env);
+  if (!current.signature) {
+    return json({
+      state: "awaiting_payment",
+      sku: product.sku,
+      product_name: product.name,
+      amount: current.expected_micros / 1000000,
+      payment_url: solanaLink(env.MERCHANT_WALLET, { ...order, expected_micros: current.expected_micros }, product.name),
+    });
+  }
+  return json({
+    state: "paid",
+    sku: product.sku,
+    product_name: product.name,
+    filename: product.filename,
+    amount: current.expected_micros / 1000000,
+    email_accepted: Boolean(current.mail_id),
+    download: await downloadLink(origin, env, current.signature),
+  });
 }
 
 async function webhook(req, env, origin, ctx) {
@@ -181,10 +206,14 @@ async function route(req, env, ctx) {
   if (req.method === "GET" && url.pathname === "/checkout") {
     if (!env.COMMERCE_DB || !env.HMAC_SECRET || !(env.PRO_FILES || env.PRO_FILES_KV || env.PRO_ZIP_PRIVATE_URL))
       return json({ error: "Checkout unavailable" }, 503);
-    return checkoutPage(Number(env.PRICE_MICROS ?? 3250000) / 1000000, {
+    const reqSku = String(url.searchParams.get("sku") || "solo").trim().toLowerCase();
+    const initial = SKU_CATALOG[reqSku] ? reqSku : "solo";
+    return checkoutPage((SKU_CATALOG[initial] || SKU_CATALOG.solo).micros / 1000000, {
       wallet: env.MERCHANT_WALLET,
       sender: env.SENDER_EMAIL,
       replyTo: env.REPLY_TO_EMAIL,
+      sku: initial,
+      catalog: SKU_CATALOG,
     });
   }
   if (req.method === "GET" && url.pathname === "/download") {

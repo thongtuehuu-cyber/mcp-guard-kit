@@ -2,7 +2,21 @@ function buyerCheckout() {
   const find = id => document.getElementById(id);
   const storage = localStorage;
   const cfg = document.body.dataset;
-  const amountLabel = cfg.amount || "3.25";
+  let catalog = {};
+  try { catalog = JSON.parse(cfg.catalog || "{}"); } catch {}
+  let currentSku = (new URL(location.href).searchParams.get("sku") || cfg.sku || "solo").toLowerCase();
+  if (!catalog[currentSku]) currentSku = catalog.solo ? "solo" : Object.keys(catalog)[0] || "solo";
+  const getProd = () => catalog[currentSku] || {
+    sku: currentSku,
+    name: "MCP Guard Kit Pro v1.2 — Solo",
+    shortEn: "30 chaos scenarios, stdio/HTTP proxies, pytest plugin & SARIF/HTML gates.",
+    shortVi: "30 kịch bản lỗi, proxy stdio/HTTP, plugin pytest & báo cáo SARIF/HTML.",
+    micros: Number(cfg.amount || 19) * 1000000,
+    filename: "mcp-guard-kit-pro-v1.2.zip",
+    highlightsEn: [],
+    highlightsVi: [],
+  };
+  let amountLabel = (getProd().micros / 1000000).toFixed(2);
   const senderEmail = cfg.sender || "orders@mail.staai.click";
   const replyEmail = cfg.replyTo || senderEmail;
   const merchantWallet = cfg.wallet || "";
@@ -36,7 +50,7 @@ function buyerCheckout() {
     return (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en";
   })();
 
-  const I18N = {
+  const makeI18n = () => ({
     en: {
       backOverview: "← Product Overview",
       netPill: "Solana Mainnet · 24/7 Auto-Delivery",
@@ -46,18 +60,18 @@ function buyerCheckout() {
       eyebrow1: "One-Time License",
       eyebrow2: "Instant ZIP Delivery",
       priceNote: "· Solana SPL · 0% platform fee",
-      offerControl: "Run 24 reusable fault scenarios & live MCP chaos proxies across 5 integrations.",
-      offerCi: "Catch silent HTTP-200 & JSON-RPC tool failures before merging your next release.",
-      stat1Val: "96 / 96 Caught",
-      stat1Lbl: "120-trial fault benchmark (0 false alarms)",
-      stat2Val: "20 Files · Pure Python",
-      stat2Lbl: "Zero external deps · Python ≥ 3.10",
-      insideTitle: "What’s inside your release ZIP",
-      previewSummary: "Preview all 20 included files inside mcp-guard-kit-pro-v1.1.zip",
+      offerControl: getProd().shortEn,
+      offerCi: getProd().shortEn,
+      stat1Val: currentSku === "deal-monitor" ? "6 Feeds · SQLite" : "30 Scenarios · Proxy",
+      stat1Lbl: currentSku === "deal-monitor" ? "GOG, Steam, Shopify, JSON-LD & Docker" : "96 / 96 fault benchmark (0 false alarms)",
+      stat2Val: "Python ≥ 3.10",
+      stat2Lbl: currentSku === "deal-monitor" ? "Self-hosted Discord/TG/Webhook" : "Zero external deps · Standalone ZIP",
+      insideTitle: `What’s included (${getProd().filename})`,
+      previewSummary: `Preview package contents (${getProd().filename})`,
       bootMsg: "Preparing your secure checkout session…",
       retryBoot: "Retry session",
       startTitle: "Step 1 · Enter Delivery Email",
-      startSub: "No account or sign-up needed. Just enter where we should send your receipt & 7-day backup ZIP link.",
+      startSub: "No account or sign-up needed. Enter where we should send your private receipt & 7-day download link.",
       guide1Title: "Enter email",
       guide1Desc: "Gets your private receipt & download backup.",
       guide2Title: `Scan QR (${amountLabel} USDC)`,
@@ -99,7 +113,7 @@ function buyerCheckout() {
       paidHead: "Payment Confirmed on Solana Mainnet!",
       paidMailSent: `Receipt & 7-day backup link sent via ${senderEmail}.`,
       paidMailQueued: "Your instant download is active below; backup email delivery is queued.",
-      downloadBtn: "Download mcp-guard-kit-pro-v1.1.zip ↓",
+      downloadBtn: `Download ${getProd().filename} ↓`,
       copyReceipt: "Copy Private Receipt Link",
       paidNote: "Signed URL expires in 7 days — reopen this bookmarked receipt anytime to issue a fresh link.",
       faqTitle: "Quick Help & Buyer FAQ",
@@ -116,7 +130,7 @@ function buyerCheckout() {
       statusPaidEmail: "Payment confirmed! Your ZIP is unlocked below and backup email was accepted.",
       statusPaidLocal: "Payment confirmed! Click the green Download button below to get your ZIP.",
       statusInvalidEmail: "Please enter a valid email address (for example: name@domain.com).",
-      statusMismatch: "This Tx signature did not match this order’s Solana Pay reference or exact 3.25 USDC amount. If you sent manually without scanning the QR, use the manual unlock email button below.",
+      statusMismatch: `This Tx signature did not match this order’s Solana Pay reference or exact ${amountLabel} USDC amount. If you sent manually without scanning the QR, use the manual unlock email button below.`,
       copied: "Copied ✓",
       copiedUri: "Copied Solana Pay Link ✓",
       copiedReceipt: "Copied Receipt Link ✓",
@@ -132,18 +146,18 @@ function buyerCheckout() {
       eyebrow1: "Bản Quyền 1 Lần",
       eyebrow2: "Tải Xuống Ngay Lập Tức",
       priceNote: "· Mạng Solana (SPL) · 0% phí sàn",
-      offerControl: "Chạy 24 kịch bản lỗi thực chiến & proxy MCP chaos trực tiếp trên 5 hệ sinh thái.",
-      offerCi: "Chặn lỗi HTTP-200 ngầm & JSON-RPC ảo giác trước khi merge bản phát hành tiếp theo.",
-      stat1Val: "Bắt 96 / 96 Lỗi",
-      stat1Lbl: "Benchmark 120 ca (0 báo động giả)",
-      stat2Val: "20 File · Python Thuần",
-      stat2Lbl: "0 thư viện ngoài · Python ≥ 3.10",
-      insideTitle: "Bên trong gói ZIP Pro v1.1 có gì",
-      previewSummary: "Xem trước toàn bộ 20 file trong mcp-guard-kit-pro-v1.1.zip",
+      offerControl: getProd().shortVi,
+      offerCi: getProd().shortVi,
+      stat1Val: currentSku === "deal-monitor" ? "6 Nguồn · SQLite" : "30 Kịch Bản · Proxy",
+      stat1Lbl: currentSku === "deal-monitor" ? "GOG, Steam, Shopify, JSON-LD & Docker" : "Benchmark 96/96 lỗi (0 báo động giả)",
+      stat2Val: "Python ≥ 3.10",
+      stat2Lbl: currentSku === "deal-monitor" ? "Tự host · Discord/TG/Webhook" : "0 thư viện ngoài · Gói ZIP độc lập",
+      insideTitle: `Bao gồm trong gói (${getProd().filename})`,
+      previewSummary: `Xem trước danh sách file (${getProd().filename})`,
       bootMsg: "Đang khởi tạo phiên thanh toán an toàn…",
       retryBoot: "Thử lại",
       startTitle: "Bước 1 · Nhập Email Nhận Sản Phẩm",
-      startSub: "Không cần tạo tài khoản. Nhập email của bạn để nhận biên lai riêng & link tải ZIP dự phòng (hiệu lực 7 ngày).",
+      startSub: "Không cần tạo tài khoản. Nhập email để nhận biên lai riêng & link tải ZIP dự phòng (hiệu lực 7 ngày).",
       guide1Title: "Nhập email",
       guide1Desc: "Nhận biên lai & link tải dự phòng.",
       guide2Title: `Quét QR (${amountLabel} USDC)`,
@@ -185,7 +199,7 @@ function buyerCheckout() {
       paidHead: "Thanh Toán Đã Xác Nhận Trên Solana Mainnet!",
       paidMailSent: `Biên lai & link tải dự phòng 7 ngày đã gửi từ ${senderEmail}.`,
       paidMailQueued: "Nút tải trực tiếp đã sẵn sàng bên dưới; email dự phòng đang được gửi.",
-      downloadBtn: "Tải Xuống mcp-guard-kit-pro-v1.1.zip ↓",
+      downloadBtn: `Tải Xuống ${getProd().filename} ↓`,
       copyReceipt: "Sao Chép Link Biên Lai Riêng",
       paidNote: "Link tải có chữ ký bảo mật hiệu lực 7 ngày — mở lại bookmark trang này để tạo link mới bất cứ lúc nào.",
       faqTitle: "Hướng Dẫn Nhanh & Câu Hỏi Thường Gặp",
@@ -202,21 +216,57 @@ function buyerCheckout() {
       statusPaidEmail: "Đã xác nhận thanh toán! Nút tải ZIP đã mở bên dưới và email dự phòng đã gửi.",
       statusPaidLocal: "Đã xác nhận thanh toán! Bấm nút Tải Xuống màu xanh bên dưới để nhận file ZIP.",
       statusInvalidEmail: "Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ten@domain.com).",
-      statusMismatch: "Mã Tx chưa khớp với mã Reference Solana Pay của đơn này hoặc chưa đủ 3.25 USDC. Nếu bạn chuyển tay không quét QR, hãy bấm nút Gửi Email Mở Khóa Thủ Công ngay bên dưới.",
+      statusMismatch: `Mã Tx chưa khớp với mã Reference Solana Pay của đơn này hoặc chưa đủ ${amountLabel} USDC. Nếu bạn chuyển tay không quét QR, hãy bấm nút Gửi Email Mở Khóa Thủ Công ngay bên dưới.`,
       copied: "Đã chép ✓",
       copiedUri: "Đã chép Link Solana Pay ✓",
       copiedReceipt: "Đã chép Link Biên Lai ✓",
       clipboardErr: "Trình duyệt chặn copy tự động — vui lòng bôi đen và copy thủ công.",
       emailPrivate: "Đã lưu riêng theo đơn"
     }
+  });
+
+  const t = k => {
+    const dict = makeI18n();
+    return (dict[currentLang] && dict[currentLang][k]) || dict.en[k] || k;
   };
 
-  const t = k => (I18N[currentLang] && I18N[currentLang][k]) || I18N.en[k] || k;
+  function applyProductUi(sku) {
+    if (sku && catalog[sku]) currentSku = sku;
+    const prod = getProd();
+    amountLabel = (prod.micros / 1000000).toFixed(2);
+    const titleEl = find("sku-title");
+    if (titleEl) titleEl.textContent = prod.name;
+    const priceEl = find("sku-price");
+    if (priceEl) priceEl.textContent = amountLabel;
+    const metaAmt = find("meta-amount-val");
+    if (metaAmt) metaAmt.textContent = `${amountLabel} USDC`;
+    document.querySelectorAll("[data-sku-btn]").forEach(btn => {
+      btn.dataset.active = btn.dataset.skuBtn === currentSku ? "1" : "0";
+      btn.disabled = Boolean(receipt.reference);
+    });
+    const listEl = find("sku-highlights");
+    if (listEl) {
+      const items = currentLang === "vi" ? prod.highlightsVi : prod.highlightsEn;
+      if (Array.isArray(items) && items.length) {
+        listEl.replaceChildren(...items.map(text => {
+          const li = document.createElement("li");
+          const check = document.createElement("span");
+          check.textContent = "✓";
+          check.className = "feat-check";
+          const txt = document.createElement("span");
+          txt.textContent = text;
+          li.append(check, txt);
+          return li;
+        }));
+      }
+    }
+  }
 
   function applyLang(lang) {
     currentLang = lang === "vi" ? "vi" : "en";
     try { storage.setItem("mcp-pro-lang", currentLang); } catch {}
     document.documentElement.lang = currentLang;
+    applyProductUi(currentSku);
     document.querySelectorAll("[data-lang-btn]").forEach(btn => {
       btn.dataset.active = btn.dataset.langBtn === currentLang ? "1" : "0";
     });
@@ -481,8 +531,10 @@ function buyerCheckout() {
     const el = find("manual-mail");
     if (!el) return;
     const sigVal = (find("signature")?.value || "").trim();
-    const subject = encodeURIComponent(`MCP Guard Pro v1.1 Manual Unlock (${amountLabel} USDC)`);
+    const prod = getProd();
+    const subject = encodeURIComponent(`${prod.name} Manual Unlock (${amountLabel} USDC)`);
     const body = encodeURIComponent(
+      `Product SKU: ${prod.sku}\n` +
       `Order Reference: ${receipt.reference || "N/A"}\n` +
       `Delivery Email: ${receipt.email || ""}\n` +
       `Solana Tx Signature: ${sigVal || "<paste your Tx signature here>"}\n`
@@ -534,6 +586,10 @@ function buyerCheckout() {
   }
 
   function showOrder() {
+    if (receipt.sku && catalog[receipt.sku]) {
+      currentSku = receipt.sku;
+      applyLang(currentLang);
+    }
     find("boot").hidden = true;
     find("begin").hidden = true;
     find("receipt").hidden = false;
@@ -556,6 +612,12 @@ function buyerCheckout() {
 
   async function status() {
     const result = await api("status", { reference: receipt.reference }, true);
+    if (result.sku && catalog[result.sku] && result.sku !== currentSku) {
+      receipt.sku = result.sku;
+      currentSku = result.sku;
+      save();
+      applyLang(currentLang);
+    }
     if (result.state === "paid") {
       stopPoll();
       setStep(3);
@@ -640,18 +702,19 @@ function buyerCheckout() {
     try {
       let order;
       try {
-        order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal, radar_ref: ref });
+        order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal, sku: currentSku, radar_ref: ref });
       } catch (err) {
         if (err.status === 404 || err.status === 409) {
           // Self-heal stale visit session seamlessly without ever stranding a buyer
           receipt = { id: crypto.randomUUID(), access: crypto.randomUUID() };
           await api("visit", { id: receipt.id, radar_ref: ref });
-          order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal, radar_ref: ref });
+          order = await api("checkout", { visit: receipt.id, access: receipt.access, email: emailVal, sku: currentSku, radar_ref: ref });
         } else {
           throw err;
         }
       }
       receipt.email = emailVal;
+      receipt.sku = order.sku || currentSku;
       receipt.reference = order.reference;
       receipt.payment_url = order.payment_url;
       save();
@@ -701,11 +764,22 @@ function buyerCheckout() {
     find("qr-box").replaceChildren();
     find("email").value = "";
     find("signature").value = "";
+    applyLang(currentLang);
     await begin();
   }));
 
   document.querySelectorAll("[data-lang-btn]").forEach(btn => {
     btn.addEventListener("click", () => applyLang(btn.dataset.langBtn));
+  });
+  document.querySelectorAll("[data-sku-btn]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (receipt.reference) return;
+      currentSku = btn.dataset.skuBtn;
+      const u = new URL(location.href);
+      u.searchParams.set("sku", currentSku);
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+      applyLang(currentLang);
+    });
   });
 
   bindCopy("copy-ref", () => receipt.reference, "copied");
@@ -733,7 +807,18 @@ export function checkoutPage(amount, opts = {}) {
   const sender = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(opts.sender || "") ? opts.sender : "orders@mail.staai.click";
   const replyTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(opts.replyTo || "") ? opts.replyTo : sender;
   const solscanHref = wallet ? `https://solscan.io/account/${wallet}` : "";
+  const activeSku = String(opts.sku || "solo");
+  const catalog = opts.catalog || {};
+  const activeProd = catalog[activeSku] || {};
   const amountLabel = Number(amount).toFixed(2);
+  const catalogJson = JSON.stringify(catalog).replace(/</g, "\\u003c");
+  const titleText = activeProd.name || `MCP Guard Kit Pro v1.2`;
+  const offerText = activeProd.shortEn || "30 chaos scenarios, stdio/HTTP proxies, pytest plugin & SARIF/HTML gates.";
+  const skuButtonsHtml = ["solo", "team", "deal-monitor"].filter(k => catalog[k]).map(k => {
+    const p = catalog[k];
+    const lbl = k === "solo" ? "MCP Guard Solo · $19" : k === "team" ? "Team CI Pack · $79" : "Deal Monitor · $19";
+    return `<button type="button" class="sku-tab" role="tab" data-sku-btn="${esc(p.sku)}" data-active="${p.sku === activeSku ? "1" : "0"}">${esc(lbl)}</button>`;
+  }).join("");
 
   const response = `<!doctype html>
 <html lang="en">
@@ -741,7 +826,7 @@ export function checkoutPage(amount, opts = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>Checkout · MCP Guard Kit Pro v1.1 (${amountLabel} USDC)</title>
+<title>Checkout · ${esc(titleText)} (${amountLabel} USDC)</title>
 <style nonce="${nonce}">
   :root {
     --bg: #060a13;
@@ -889,6 +974,16 @@ export function checkoutPage(amount, opts = {}) {
   .feat-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 9px; }
   .feat-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--soft); }
   .feat-ic { width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; color: var(--emerald); }
+  .feat-check { color: var(--emerald); font-weight: 800; flex-shrink: 0; }
+  .sku-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .sku-tab {
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+    font: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 9px; cursor: pointer;
+  }
+  .sku-tab[data-active="1"] {
+    border-color: var(--cyan); color: #e0f2fe; background: rgba(56, 189, 248, 0.16);
+  }
+  .sku-tab:disabled { opacity: 0.6; cursor: not-allowed; }
   .feat-list b { color: var(--text); }
 
   .zip-preview {
@@ -1101,7 +1196,7 @@ export function checkoutPage(amount, opts = {}) {
   }
 </style>
 </head>
-<body data-amount="${esc(amountLabel)}" data-sender="${esc(sender)}" data-reply-to="${esc(replyTo)}" data-wallet="${esc(wallet)}">
+<body data-amount="${esc(amountLabel)}" data-sender="${esc(sender)}" data-reply-to="${esc(replyTo)}" data-wallet="${esc(wallet)}" data-sku="${esc(activeSku)}" data-catalog="${esc(catalogJson)}">
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="https://thongtuehuu-cyber.github.io/mcp-guard-kit/" rel="noopener noreferrer">
@@ -1111,8 +1206,8 @@ export function checkoutPage(amount, opts = {}) {
             <path d="m9 12 2 2 4-4" stroke="#38bdf8"/>
           </svg>
         </span>
-        <span>MCP Guard Kit</span>
-        <span class="pro-tag">Pro v1.1</span>
+        <span>MCP Guard Studio</span>
+        <span class="pro-tag">v1.2 · Solana</span>
       </a>
       <div class="top-right">
         <div class="lang-switch" role="group" aria-label="Language">
@@ -1134,50 +1229,43 @@ export function checkoutPage(amount, opts = {}) {
 
     <div class="layout">
       <aside class="card">
+        <div class="sku-tabs" role="tablist" id="sku-tabs">${skuButtonsHtml}</div>
         <div class="eyebrows">
           <span class="eyebrow cyan" data-i18n="eyebrow1">One-Time License</span>
           <span class="eyebrow" data-i18n="eyebrow2">Instant ZIP Delivery</span>
         </div>
-        <h1>MCP Guard Kit Pro v1.1</h1>
+        <h1 id="sku-title">${esc(titleText)}</h1>
         <div class="price-row">
-          <span class="price-num">${amountLabel}</span>
+          <span class="price-num" id="sku-price">${amountLabel}</span>
           <span class="price-unit">USDC</span>
           <span class="price-note" data-i18n="priceNote">· Solana SPL · 0% platform fee</span>
         </div>
-        <div class="offer-box" id="offer">Run 24 reusable fault scenarios &amp; live MCP chaos proxies across 5 integrations.</div>
+        <div class="offer-box" id="offer">${esc(offerText)}</div>
 
         <div class="stats-row">
           <div class="stat-tile">
-            <div class="stat-val" data-i18n="stat1Val">96 / 96 Caught</div>
-            <div class="stat-lbl" data-i18n="stat1Lbl">120-trial fault benchmark (0 false alarms)</div>
+            <div class="stat-val" data-i18n="stat1Val">30 Scenarios · Proxy</div>
+            <div class="stat-lbl" data-i18n="stat1Lbl">96 / 96 fault benchmark (0 false alarms)</div>
           </div>
           <div class="stat-tile">
-            <div class="stat-val" data-i18n="stat2Val">20 Files · Pure Python</div>
-            <div class="stat-lbl" data-i18n="stat2Lbl">Zero external deps · Python ≥ 3.10</div>
+            <div class="stat-val" data-i18n="stat2Val">Python ≥ 3.10</div>
+            <div class="stat-lbl" data-i18n="stat2Lbl">Zero external deps · Standalone ZIP</div>
           </div>
         </div>
 
-        <div class="sec-title" data-i18n="insideTitle">What’s inside your release ZIP</div>
-        <ul class="feat-list">
+        <div class="sec-title" data-i18n="insideTitle">What’s included</div>
+        <ul class="feat-list" id="sku-highlights">
           <li>
-            <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>24 production fault scenarios</b> across Stripe, GitHub, Postgres, Slack &amp; Playwright JSON-RPC envelopes</span>
+            <span class="feat-check">✓</span>
+            <span><b>30 production fault scenarios</b> across Stripe, GitHub, Postgres, Slack, Playwright &amp; MCP Core</span>
           </li>
           <li>
-            <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>Live chaos proxies:</b> <code>proxy-stdio</code> (NDJSON / Content-Length) &amp; <code>proxy-http</code> reverse proxy</span>
+            <span class="feat-check">✓</span>
+            <span><b>Live chaos proxies:</b> <code>proxy-stdio</code> (stderr-safe) &amp; Streamable-HTTP reverse proxy</span>
           </li>
           <li>
-            <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>Native Pytest plugin:</b> <code>mcp_chaos</code>, <code>mcp_assert_honest</code>, <code>mcp_stdio_proxy</code> &amp; <code>mcp_http_proxy</code></span>
-          </li>
-          <li>
-            <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>CI PR gate exports:</b> SARIF 2.1, JUnit XML, GitHub Actions workflow &amp; Executive HTML report</span>
-          </li>
-          <li>
-            <svg class="feat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>Perpetual commercial license</b> for unlimited internal, client &amp; CI/CD repositories</span>
+            <span class="feat-check">✓</span>
+            <span><b>Policy CLI gates &amp; init:</b> <code>--policy</code>, <code>--rules-file</code>, pytest plugin &amp; SARIF/HTML</span>
           </li>
         </ul>
 
@@ -1263,7 +1351,7 @@ export function checkoutPage(amount, opts = {}) {
           <div class="meta-grid">
             <div class="meta-item">
               <div class="meta-k" data-i18n="metaAmount">Exact Amount</div>
-              <div class="meta-v"><span>${amountLabel} USDC</span><span class="eyebrow">SPL</span></div>
+              <div class="meta-v"><span id="meta-amount-val">${amountLabel} USDC</span><span class="eyebrow">SPL</span></div>
             </div>
             <div class="meta-item">
               <div class="meta-k" data-i18n="metaNetwork">Network &amp; Token</div>

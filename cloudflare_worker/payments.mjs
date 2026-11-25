@@ -39,12 +39,12 @@ export function newReference() {
   return prefix + encoded;
 }
 
-export function solanaLink(wallet, order) {
+export function solanaLink(wallet, order, label = "MCP Guard Studio") {
   const params = new URLSearchParams({
     amount: String(order.expected_micros / 1000000),
     "spl-token": USDC,
     reference: order.reference,
-    label: "MCP Guard Kit Pro"
+    label,
   });
   return "solana:" + wallet + "?" + params.toString();
 }

@@ -1,6 +1,9 @@
 name = "mcp-guard-solana-fulfillment"
 main = "worker.js"
 compatibility_date = "2026-11-23"
+routes = [
+  { pattern = "pay.staai.click", custom_domain = true }
+]
 
 [observability]
 enabled = true
@@ -11,10 +14,13 @@ enabled = true
 [vars]
 MERCHANT_WALLET = "GPrbk8Lj3ZBCM26TzE3Zv1Dg9z2pJwMaZuc7sA5qCEXF"
 SENDER_EMAIL = "orders@mail.staai.click"
-REPLY_TO_EMAIL = "thongtuehuu@gmail.com"
+REPLY_TO_EMAIL = "orders@mail.staai.click"
 PRICE_MICROS = 3250000
-PUBLIC_ORIGIN = "https://mcp-guard-solana-fulfillment.daochienthangkt.workers.dev"
+DEFAULT_SKU = "solo"
+PUBLIC_ORIGIN = "https://pay.staai.click"
 PRO_ZIP_KEY = "mcp-guard-kit-pro-v1.1.zip"
+PRO_V12_ZIP_KEY = "mcp-guard-kit-pro-v1.2.zip"
+DEAL_MONITOR_ZIP_KEY = "deal-monitor-self-hosted-v1.2.zip"
 
 [[d1_databases]]
 binding = "COMMERCE_DB"

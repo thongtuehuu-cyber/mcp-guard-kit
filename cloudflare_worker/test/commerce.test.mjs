@@ -46,7 +46,7 @@ function transaction(reference, amount = 3250000) {
 // D1 has SQLite semantics. Only the binding envelope is adapted here.
 function binding() {
   const sqlite = new DatabaseSync(":memory:");
-  for (const name of ["0001_commerce.sql", "0002_offer_policy.sql", "0003_pending_payments.sql"]) {
+  for (const name of ["0001_commerce.sql", "0002_offer_policy.sql", "0003_pending_payments.sql", "0004_product_sku.sql"]) {
     sqlite.exec(readFileSync(new URL("../migrations/" + name, import.meta.url), "utf8"));
   }
   function prepare(sql, args = []) {
@@ -73,9 +73,15 @@ function setup(t) {
   t.after(() => db.sqlite.close());
   const pending = [];
   const ctx = { waitUntil: promise => pending.push(promise) };
+  const blobs = {
+    "mcp-guard-kit-pro-v1.1.zip": new Uint8Array([80, 75]),
+    "mcp-guard-kit-pro-v1.2.zip": new Uint8Array([80, 75, 1, 2]),
+    "deal-monitor-self-hosted-v1.2.zip": new Uint8Array([80, 75, 3, 4]),
+  };
   const env = { PUBLIC_ORIGIN: origin, COMMERCE_DB: db, MERCHANT_WALLET: wallet, HMAC_SECRET: "test-only",
     COMMERCE_FEED_TOKEN: "local-feed", HELIUS_AUTH_SECRET: "test-webhook", BREVO_API_KEY: "local-mail",
-    SENDER_EMAIL: "test@example.invalid", PRO_FILES: { get: async () => ({ body: new Uint8Array([80, 75]) }) } };
+    SENDER_EMAIL: "orders@mail.staai.click", REPLY_TO_EMAIL: "orders@mail.staai.click",
+    PRO_FILES: { get: async key => (blobs[key] ? { body: blobs[key] } : null) } };
   const call = (path, body, auth) => worker.fetch(new Request(origin + path, {
     method: body ? "POST" : "GET",
     headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) },
@@ -250,4 +256,79 @@ test("checkout auto-backfills missing visit row instead of failing with Unknown 
   const html = await page.text();
   assert.ok(html.includes("data-lang-btn=\"vi\""));
   assert.ok(html.includes("manual-drawer"));
+});
+
+test("multi-SKU checkout enforces exact USDC amounts and delivers SKU-matched artifacts", async t => {
+  const { call, flush } = setup(t);
+  const localFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = localFetch; });
+
+  assert.equal((await call("/api/checkout", {
+    visit: crypto.randomUUID(), access: crypto.randomUUID(), email: "a@b.invalid", sku: "bogus"
+  })).status, 400);
+
+  const cases = [
+    { sku: "team", micros: 79000000, filename: "mcp-guard-kit-pro-v1.2.zip", bytes: [80, 75, 1, 2], sig: "1".repeat(63) + "2" },
+    { sku: "deal-monitor", micros: 19000000, filename: "deal-monitor-self-hosted-v1.2.zip", bytes: [80, 75, 3, 4], sig: "1".repeat(63) + "3" },
+  ];
+
+  for (const item of cases) {
+    const visit = crypto.randomUUID();
+    const access = crypto.randomUUID();
+    const bearer = "Bearer " + access;
+    const res = await call("/api/checkout", { visit, access, email: "buyer@corp.invalid", sku: item.sku });
+    assert.equal(res.status, 200);
+    const order = await res.json();
+    assert.equal(order.sku, item.sku);
+    assert.equal(order.amount, item.micros / 1000000);
+
+    const txWrong = transaction(order.reference, 3250000);
+    txWrong.transaction.signatures[0] = item.sig;
+    const txRight = transaction(order.reference, item.micros);
+    txRight.transaction.signatures[0] = item.sig;
+
+    let activeTx = txWrong;
+    globalThis.fetch = async url => {
+      if (String(url).includes("brevo")) return Response.json({ messageId: "ok-" + item.sku });
+      return Response.json({ result: activeTx });
+    };
+
+    assert.equal((await call("/api/confirm", { reference: order.reference, signature: item.sig }, bearer)).status, 422);
+    activeTx = txRight;
+    assert.equal((await call("/api/confirm", { reference: order.reference, signature: item.sig }, bearer)).status, 200);
+    await flush();
+
+    const status = await (await call("/api/status", { reference: order.reference }, bearer)).json();
+    assert.equal(status.state, "paid");
+    assert.equal(status.sku, item.sku);
+    assert.equal(status.filename, item.filename);
+
+    const dlUrl = new URL(status.download);
+    const dlResp = await call(dlUrl.pathname + dlUrl.search);
+    assert.equal(dlResp.status, 200);
+    assert.ok((dlResp.headers.get("content-disposition") || "").includes(item.filename));
+    assert.deepEqual(Array.from(new Uint8Array(await dlResp.arrayBuffer())), item.bytes);
+  }
+
+  const dmPage = await (await call("/checkout?sku=deal-monitor")).text();
+  assert.ok(dmPage.includes("data-sku=\"deal-monitor\""));
+  assert.ok(dmPage.includes("orders@mail.staai.click"));
+  assert.ok(!dmPage.includes("gmail.com"));
+});
+
+test("DEFAULT_SKU=solo resolves /checkout default order to 19 USDC Pro v1.2", async t => {
+  const { env, call } = setup(t);
+  env.DEFAULT_SKU = "solo";
+  const page = await (await call("/checkout")).text();
+  assert.ok(page.includes('data-sku="solo"'));
+  assert.ok(page.includes("Benchmark 96/96 lỗi"));
+  const res = await call("/api/checkout", {
+    visit: crypto.randomUUID(),
+    access: crypto.randomUUID(),
+    email: "solo@example.invalid",
+  });
+  assert.equal(res.status, 200);
+  const order = await res.json();
+  assert.equal(order.sku, "solo");
+  assert.equal(order.amount, 19);
 });

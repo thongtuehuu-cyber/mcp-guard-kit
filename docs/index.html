@@ -14,7 +14,7 @@
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Windows, macOS, Linux",
     "offers": [
-      {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Open-Core MIT CLI v1.1.0"},
+      {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Open-Core MIT CLI v1.2.0"},
       {"@type": "Offer", "price": "19", "priceCurrency": "USD", "name": "Pro Automation Pack v1.2 — Solo"},
       {"@type": "Offer", "price": "79", "priceCurrency": "USD", "name": "Pro Automation Pack v1.2 — Team CI"},
       {"@type": "Offer", "price": "19", "priceCurrency": "USD", "name": "Deal Monitor Self-Hosted v1.2"}
@@ -102,11 +102,11 @@
 </head>
 <body>
   <div class="wrap">
-    <span class="pill">Open-Core MIT v1.1.0 · Pro Pack v1.2 · Zero External Dependencies · Python 3.10+</span>
+    <span class="pill">Open-Core MIT v1.2.0 · Pro Suite v1.2 · Zero External Dependencies · Python 3.10+</span>
     <h1>Stop AI Agents From Lying About Failed MCP Tool Calls.</h1>
     <p class="lead">Inject deterministic MCP failure modes locally in CI and behind live stdio/HTTP proxies. In reproducible seeded benchmarks (<code>seed=42</code>), naive HTTP-200 wrappers missed <b>75.0% (36/48 Core · 72/96 Pro)</b> of faulted tool responses while <code>mcp-guard</code> caught <b>100.0%</b> with <b>0 false alarms</b>.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.1.0">Download Free CLI v1.1.0 →</a>
+      <a class="btn btn-primary" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.2.0">Download Free CLI v1.2.0 →</a>
       <a class="btn btn-ghost" href="#fault-sim">Try Live Fault Simulator</a>
       <a class="btn btn-ghost" href="#pro-pack">Solana Store (v1.2 · $19–$79)</a>
     </div>
@@ -130,7 +130,7 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
     </div>
 
     <section class="panel-box" id="fault-sim">
-      <h2 style="margin-top:0;">Live MCP Fault Simulator (Real Pro v1.1 Payloads)</h2>
+      <h2 style="margin-top:0;">Live MCP Fault Simulator (Real Pro v1.2 Payloads)</h2>
       <p style="color:var(--muted);font-size:13.5px;margin-top:0;">Select a real upstream connector fault below to compare what a naive HTTP-200 wrapper misses vs. what <code>mcp-guard-pro</code> blocks deterministically.</p>
       <div class="tabs" id="sim-tabs">
         <button class="tab-btn active" type="button" data-sim="stripe">Stripe (HTTP 200 silent decline)</button>
@@ -147,7 +147,7 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
           <div id="sim-naive" style="font-size:13.5px;font-weight:700;"></div>
         </div>
         <div class="verdict-card good">
-          <div class="v-tag">MCP Guard Pro v1.1</div>
+          <div class="v-tag">MCP Guard Pro v1.2</div>
           <div id="sim-guard" style="font-size:13.5px;font-weight:700;"></div>
         </div>
       </div>
@@ -199,10 +199,10 @@ python -m mcp_guard audit --simulate-lying-agent --html-out report.html</code></
 
     <div class="grid-3" id="pro-pack">
       <div class="card">
-        <h3>Open-Core CLI — $0 (MIT v1.1.0)</h3>
+        <h3>Open-Core CLI — $0 (MIT v1.2.0)</h3>
         <p>8 core MCP fault injectors, evidence-backed anti-hallucination verifier, Markdown &amp; HTML audit report CLI, full pytest suite.</p>
         <div class="pay-actions" style="margin-top:auto;">
-          <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.1.0">Download v1.1.0 Release ↗</a>
+          <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit/releases/tag/v1.2.0">Download v1.2.0 Release ↗</a>
           <a class="btn-sm btn-copy" href="https://github.com/thongtuehuu-cyber/mcp-guard-kit">View Source on GitHub</a>
         </div>
       </div>

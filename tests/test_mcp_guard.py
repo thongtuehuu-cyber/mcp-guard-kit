@@ -90,3 +90,13 @@ def test_empirical_benchmark_reports_measurable_detection_gap(tmp_path: Path) ->
     assert data["naive_slipped_failures"] > 0
     assert data["mcp_guard_slipped_failures"] == 0
     assert data["mcp_guard_catch_rate_pct"] == 100.0
+
+def test_native_mcp_content_and_required_keys():
+    from mcp_guard.verifier import _detect_tool_failure
+
+    for bad in (True, False):
+        result = {"isError": bad, "content": [{"type": "text", "text": "42"}]}
+        assert _detect_tool_failure(result, [])[0] is bad
+        assert _detect_tool_failure({"jsonrpc": "2.0", "id": 1, "result": result}, [])[0] is bad
+    assert not _detect_tool_failure({"content": [], "structuredContent": {"count": 0}}, ["count"])[0]
+    assert _detect_tool_failure({"content": [], "structuredContent": {"total": 1}}, ["count"])[0]

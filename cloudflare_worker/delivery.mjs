@@ -1,3 +1,5 @@
+import { artifactKeyForProduct, resolveProduct } from "./catalog.mjs";
+
 const encoder = new TextEncoder();
 const WEEK = 7 * 86400000;
 
@@ -35,12 +37,25 @@ export async function downloadLink(origin, env, signature) {
 }
 
 export async function getFile(env, signature) {
+  const order = await env.COMMERCE_DB.prepare(
+    "SELECT sku FROM orders WHERE signature=?"
+  ).bind(signature).first();
+  const product = resolveProduct(order?.sku || "", env);
+  const artifactKey = artifactKeyForProduct(product, env);
+  const downloadName = (product.filename || artifactKey).replace(/[^A-Za-z0-9._-]/g, "_");
+
   let body;
   if (env.PRO_FILES) {
-    const object = await env.PRO_FILES.get(env.PRO_ZIP_KEY || "mcp-guard-kit-pro-v1.1.zip");
+    const object = (await env.PRO_FILES.get(artifactKey))
+      || (artifactKey !== (env.PRO_ZIP_KEY || "mcp-guard-kit-pro-v1.1.zip")
+        ? await env.PRO_FILES.get(env.PRO_ZIP_KEY || "mcp-guard-kit-pro-v1.1.zip")
+        : null);
     body = object?.body;
   } else if (env.PRO_FILES_KV) {
-    body = await env.PRO_FILES_KV.get(env.PRO_ZIP_KEY || "mcp-guard-kit-pro-v1.1.zip", { type: "stream" });
+    body = await env.PRO_FILES_KV.get(artifactKey, { type: "stream" });
+    if (!body && artifactKey !== (env.PRO_ZIP_KEY || "mcp-guard-kit-pro-v1.1.zip")) {
+      body = await env.PRO_FILES_KV.get(env.PRO_ZIP_KEY || "mcp-guard-kit-pro-v1.1.zip", { type: "stream" });
+    }
   } else if (env.PRO_ZIP_PRIVATE_URL && new URL(env.PRO_ZIP_PRIVATE_URL).protocol === "https:") {
     const response = await fetch(env.PRO_ZIP_PRIVATE_URL, { redirect: "error", signal: AbortSignal.timeout(10000) });
     if (response.ok) body = response.body;
@@ -50,8 +65,10 @@ export async function getFile(env, signature) {
     "UPDATE orders SET downloaded_at=? WHERE signature=? AND downloaded_at IS NULL"
   ).bind(Date.now(), signature).run();
   return new Response(body, { headers: {
-    "content-type": "application/zip", "content-disposition": 'attachment; filename="mcp-guard-kit-pro-v1.1.zip"',
-    "cache-control": "private, no-store", "referrer-policy": "no-referrer"
+    "content-type": "application/zip",
+    "content-disposition": `attachment; filename="${downloadName}"`,
+    "cache-control": "private, no-store",
+    "referrer-policy": "no-referrer"
   } });
 }
 
@@ -69,9 +86,11 @@ export async function deliverOrder(env, reference, origin) {
     if (!env.SENDER_EMAIL || (!env.RESEND_API_KEY && !env.BREVO_API_KEY)) {
       throw new Error("Mail configuration missing");
     }
+    const product = resolveProduct(order.sku || "", env);
     const link = await downloadLink(origin, env, order.signature);
-    const subject = "Your MCP Guard Kit Pro v1.1 download";
-    const text = "Thank you for purchasing MCP Guard Kit Pro v1.1!\n\n" +
+    const subject = `Your ${product.name} download`;
+    const text = `Thank you for purchasing ${product.name} (${order.expected_micros / 1000000} USDC)!\n\n` +
+      `File: ${product.filename}\n` +
       "Your download link is valid for seven days:\n" + link +
       "\n\nSolana Tx: " + order.signature +
       "\n\nYour private checkout receipt can generate a fresh link anytime.";
