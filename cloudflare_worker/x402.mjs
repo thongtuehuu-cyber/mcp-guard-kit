@@ -48,6 +48,40 @@ export const X402_ENDPOINTS = {
       html: "<script type=\"application/ld+json\">{\"@type\":\"Product\",\"name\":\"Widget\",\"offers\":{\"@type\":\"Offer\",\"price\":\"19.00\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\"}}</script>",
     },
   },
+  "/api/v1/x402/pr-critic": {
+    path: "/api/v1/x402/pr-critic",
+    name: "PR Diff Critic & Anti-Hallucination Gate",
+    description: "Audits git diffs for forbidden .env/secret leaks, fake assert-True/skipped tests, stray artifacts, and claimed-vs-observed test output contradictions.",
+    micros: 150000,
+    amountUsdc: "0.15",
+    label: "x402: PR Critic",
+    inputExample: {
+      diff: "diff --git a/src/fix.py b/src/fix.py\n--- a/src/fix.py\n+++ b/src/fix.py\n@@ -1 +1 @@\n-return None\n+return True\n",
+      test_output: "1 passed in 0.04s",
+      claimed_pass: true,
+    },
+  },
+  "/api/v1/x402/blind-judge": {
+    path: "/api/v1/x402/blind-judge",
+    name: "Swap-Debiased Pairwise Blind Judge & Elo Evaluator",
+    description: "Position-debiased A/B + B/A evaluator that rejects flip-flopping judgments as ties, enforces rule-violation vetoes, and outputs Elo delta.",
+    micros: 100000,
+    amountUsdc: "0.10",
+    label: "x402: Blind Judge",
+    inputExample: {
+      pass1: { winner: "B", score_a: 78, score_b: 91 },
+      pass2: { winner: "A", score_a: 90, score_b: 79 },
+    },
+  },
+  "/api/v1/x402/bounty-feed": {
+    path: "/api/v1/x402/bounty-feed",
+    name: "Verified 0-PR Bounty & High-EV Arena Feed",
+    description: "Real-time sanitized JSON shortlist of active zero-PR GitHub bounties and EV-positive Make.fun arenas synced from svhome radar.",
+    micros: 50000,
+    amountUsdc: "0.05",
+    label: "x402: Bounty Feed",
+    inputExample: { min_usd: 50, limit: 10 },
+  },
 };
 
 function xJson(data, status = 200, extraHeaders = {}) {
@@ -467,6 +501,7 @@ function catalogManifest(origin) {
     network: "solana-mainnet",
     asset: USDC,
     currency: "USDC",
+    capabilities: ["x402-v1", "solana-usdc", "mcp-guard", "pr-critic", "blind-judge", "bounty-feed"],
     paymentHeaders: ["X-PAYMENT", "PAYMENT-SIGNATURE"],
     discovery: origin + "/.well-known/x402.json",
     endpoints: Object.values(X402_ENDPOINTS).map(ep => ({
@@ -483,6 +518,216 @@ function catalogManifest(origin) {
       teamCiPackV12: origin + "/checkout?sku=team",
       dealMonitorV12: origin + "/checkout?sku=deal-monitor",
     },
+  };
+}
+
+const SECRET_TOKEN_RE = /(?:sk-[A-Za-z0-9]{20,}|gh[po]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)/;
+const TRIVIAL_TEST_RE = /(?:\bassert\s+True\b|assertTrue\s*\(\s*true\s*\)|expect\s*\(\s*true\s*\)\s*\.toBe\s*\(\s*true\s*\)|pytest\.mark\.skip|\b(?:describe|it|test)\.(?:skip|only)\s*\()/i;
+const TEST_FAIL_RE = /(?:\bFAILED\b|AssertionError|Traceback \(most recent call last\)|exit(?:ed with)? code [1-9]|\bfailures?:\s*[1-9])/i;
+
+function isForbiddenSecretPath(rawPath) {
+  const clean = String(rawPath || "").trim().replace(/^["']|["']$/g, "");
+  const base = clean.split("/").pop().toLowerCase();
+  if ([".env.example", ".env.sample", ".env.template"].includes(base)) return false;
+  if (base === ".env" || base.startsWith(".env.") || base === "id_rsa" || base === "id_ed25519" || base === "credentials.json") {
+    return true;
+  }
+  return /\.(?:pem|key|p12|pfx)$/i.test(base);
+}
+
+export function evaluatePrCritic(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Expected JSON object");
+  const diff = typeof body.diff === "string" ? body.diff : "";
+  if (!diff.trim() || diff.length > 120000) throw new Error("Provide non-empty 'diff' string (<= 120KB)");
+
+  const touchedSet = new Set();
+  if (Array.isArray(body.files)) {
+    for (const f of body.files.slice(0, 200)) {
+      if (typeof f === "string" && f.trim()) touchedSet.add(f.trim());
+    }
+  }
+  const blockers = [];
+  const warnings = [];
+  let addedLinesChecked = 0;
+
+  for (const line of diff.split(/\r?\n/)) {
+    if (line.startsWith("diff --git ")) {
+      const m = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+      if (m) touchedSet.add(m[2].trim());
+      continue;
+    }
+    if (line.startsWith("+++ b/")) {
+      touchedSet.add(line.slice(6).trim());
+      continue;
+    }
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      addedLinesChecked++;
+      const added = line.slice(1);
+      if (SECRET_TOKEN_RE.test(added) && !blockers.includes("secret_token_in_diff")) {
+        blockers.push("secret_token_in_diff");
+      }
+      if (TRIVIAL_TEST_RE.test(added) && !blockers.includes("trivial_or_skipped_test_in_diff")) {
+        blockers.push("trivial_or_skipped_test_in_diff");
+      }
+    }
+  }
+
+  const filesTouched = [...touchedSet];
+  for (const fp of filesTouched) {
+    if (isForbiddenSecretPath(fp)) blockers.push(`forbidden_file:${fp}`);
+    if (/(?:^|\/)(?:__pycache__|node_modules|\.pytest_cache)(?:\/|$)/.test(fp)) {
+      warnings.push(`stray_cache_artifact:${fp}`);
+    }
+  }
+  const maxFiles = Math.max(1, Math.min(100, Number(body.max_files || 15) || 15));
+  if (filesTouched.length > maxFiles) {
+    warnings.push(`oversized_diff_files:${filesTouched.length}>${maxFiles}`);
+  }
+  if (typeof body.test_output === "string" && body.claimed_pass === true && TEST_FAIL_RE.test(body.test_output)) {
+    blockers.push("test_output_contradicts_pass_claim");
+  }
+
+  const riskScore = Math.min(100, blockers.length * 40 + warnings.length * 10);
+  return {
+    ok: true,
+    service: "pr-critic-x402",
+    verdict: blockers.length === 0 ? "PASS" : "BLOCK",
+    risk_score: riskScore,
+    blockers,
+    warnings,
+    files_touched: filesTouched,
+    added_lines_checked: addedLinesChecked,
+  };
+}
+
+function mapPairWinner(rawWinner, passIndex) {
+  const w = String(rawWinner || "TIE").trim().toUpperCase();
+  if (passIndex === 1) return w === "B" ? "challenger" : (w === "A" ? "baseline" : "tie");
+  return w === "A" ? "challenger" : (w === "B" ? "baseline" : "tie");
+}
+
+function scoreCandidateFeature(cand, rubric = []) {
+  if (typeof cand === "string") {
+    const words = cand.trim().split(/\s+/).filter(Boolean);
+    const hits = rubric.filter(k => cand.toLowerCase().includes(String(k).toLowerCase())).length;
+    return Math.min(100, Math.round(words.length * 1.2 + hits * 12));
+  }
+  if (!cand || typeof cand !== "object" || Array.isArray(cand)) {
+    throw new Error("Candidate must be an object or non-empty string");
+  }
+  const text = String(cand.summary || cand.output || cand.code || "");
+  const total = Math.max(1, Number(cand.checks_total || 1));
+  const passed = Math.max(0, Math.min(total, Number(cand.checks_passed || 0)));
+  const errCount = Array.isArray(cand.errors) ? cand.errors.length : Number(cand.errors || 0);
+  const rubricHits = rubric.filter(k => text.toLowerCase().includes(String(k).toLowerCase())).length;
+  const raw = (passed / total) * 60 + Math.min(25, rubricHits * 8) + Math.min(15, Math.floor(text.length / 40)) - errCount * 20;
+  return Math.max(0, Math.min(100, Math.round(raw * 100) / 100));
+}
+
+export function evaluateBlindJudge(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Expected JSON object");
+  const k = Math.max(8, Math.min(64, Number(body.k_factor || 32) || 32));
+  const violations = [];
+  for (const rawList of [body.rule_violations, body.pass1?.rule_violations, body.pass2?.rule_violations, body.challenger?.rule_violations]) {
+    if (Array.isArray(rawList)) {
+      for (const v of rawList) {
+        if (v && !violations.includes(String(v))) violations.push(String(v));
+      }
+    }
+  }
+
+  let mode = "pairwise_ab_raw";
+  let w1 = "tie";
+  let w2 = "tie";
+  let avgBase = 70;
+  let avgChal = 70;
+
+  if (body.pass1 && body.pass2 && typeof body.pass1 === "object" && typeof body.pass2 === "object") {
+    w1 = mapPairWinner(body.pass1.winner, 1);
+    w2 = mapPairWinner(body.pass2.winner, 2);
+    const b1 = Number(body.pass1.score_a ?? 70);
+    const c1 = Number(body.pass1.score_b ?? 70);
+    const c2 = Number(body.pass2.score_a ?? 70);
+    const b2 = Number(body.pass2.score_b ?? 70);
+    avgBase = (b1 + b2) / 2;
+    avgChal = (c1 + c2) / 2;
+  } else if (body.baseline !== undefined && body.challenger !== undefined) {
+    mode = "symmetric_structural";
+    const rubric = Array.isArray(body.rubric) ? body.rubric.slice(0, 20) : [];
+    avgBase = scoreCandidateFeature(body.baseline, rubric);
+    avgChal = scoreCandidateFeature(body.challenger, rubric);
+    const diff = avgChal - avgBase;
+    const outcome = diff >= 2 ? "challenger" : (diff <= -2 ? "baseline" : "tie");
+    w1 = outcome;
+    w2 = outcome;
+  } else {
+    throw new Error("Provide {pass1, pass2} or {baseline, challenger}");
+  }
+
+  const scoreDelta = Math.round((avgChal - avgBase) * 100) / 100;
+  const debiasedConsistent = (w1 === w2) || w1 === "tie" || w2 === "tie";
+  let winner = "tie";
+  if (violations.length > 0) winner = "baseline";
+  else if (w1 === "challenger" && w2 === "challenger") winner = "challenger";
+  else if (w1 !== w2 && w1 !== "tie" && w2 !== "tie") winner = "tie";
+  else if ((w1 === "challenger" || w2 === "challenger") && (w1 === "tie" || w2 === "tie") && scoreDelta >= 4) winner = "challenger";
+  else if (w1 === "baseline" && w2 === "baseline") winner = "baseline";
+
+  const actual = winner === "challenger" ? 1.0 : (winner === "baseline" ? 0.0 : 0.5);
+  const expected = 1.0 / (1.0 + Math.pow(10, (avgBase - avgChal) / 400.0));
+  const eloDelta = Math.round(k * (actual - expected) * 100) / 100;
+
+  return {
+    ok: true,
+    service: "blind-judge-x402",
+    mode,
+    winner,
+    pass1_winner: w1,
+    pass2_winner: w2,
+    debiased_consistent: debiasedConsistent,
+    baseline_score: Math.round(avgBase * 100) / 100,
+    challenger_score: Math.round(avgChal * 100) / 100,
+    score_delta: scoreDelta,
+    elo_delta: eloDelta,
+    violations,
+  };
+}
+
+export function validateBountyFeedInput(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Expected JSON object");
+  if (body.min_usd !== undefined && (!Number.isFinite(Number(body.min_usd)) || Number(body.min_usd) < 0)) {
+    throw new Error("min_usd must be >= 0");
+  }
+  if (body.limit !== undefined && (!Number.isFinite(Number(body.limit)) || Number(body.limit) < 1 || Number(body.limit) > 50)) {
+    throw new Error("limit must be between 1 and 50");
+  }
+}
+
+export async function queryBountyFeed(env, body) {
+  validateBountyFeedInput(body);
+  const minUsd = Number(body.min_usd || 0);
+  const srcFilter = String(body.source || "").trim().toLowerCase();
+  const limit = Math.max(1, Math.min(50, Math.round(Number(body.limit || 20))));
+  const row = await env.COMMERCE_DB.prepare("SELECT payload_json, updated_at FROM x402_bounty_feed WHERE id=1").first();
+  let allItems = [];
+  if (row?.payload_json) {
+    try {
+      const parsed = JSON.parse(row.payload_json);
+      if (Array.isArray(parsed)) allItems = parsed;
+    } catch {}
+  }
+  const filtered = allItems.filter(it => {
+    if (!it || typeof it !== "object") return false;
+    if (Number(it.bounty_usd || 0) < minUsd) return false;
+    if (srcFilter && String(it.source || "").toLowerCase() !== srcFilter) return false;
+    return true;
+  }).slice(0, limit);
+  return {
+    ok: true,
+    service: "bounty-feed-x402",
+    updated_at: row?.updated_at || null,
+    count: filtered.length,
+    items: filtered,
   };
 }
 
@@ -536,11 +781,11 @@ export async function handleX402(req, env, url, origin) {
 
   // Validate request shape BEFORE consuming signature or hitting Solana RPC
   try {
-    if (ep.path === "/api/v1/x402/mcp-audit") {
-      auditMcpTraces(body);
-    } else {
-      validatePriceInput(body);
-    }
+    if (ep.path === "/api/v1/x402/mcp-audit") auditMcpTraces(body);
+    else if (ep.path === "/api/v1/x402/price-extract") validatePriceInput(body);
+    else if (ep.path === "/api/v1/x402/pr-critic") evaluatePrCritic(body);
+    else if (ep.path === "/api/v1/x402/blind-judge") evaluateBlindJudge(body);
+    else if (ep.path === "/api/v1/x402/bounty-feed") validateBountyFeedInput(body);
   } catch (err) {
     return xJson({ error: err.message || "Invalid request payload" }, 400);
   }
@@ -566,9 +811,13 @@ export async function handleX402(req, env, url, origin) {
 
   let result;
   try {
-    result = ep.path === "/api/v1/x402/mcp-audit" ? auditMcpTraces(body) : await extractPricePayload(body);
+    if (ep.path === "/api/v1/x402/mcp-audit") result = auditMcpTraces(body);
+    else if (ep.path === "/api/v1/x402/price-extract") result = await extractPricePayload(body);
+    else if (ep.path === "/api/v1/x402/pr-critic") result = evaluatePrCritic(body);
+    else if (ep.path === "/api/v1/x402/blind-judge") result = evaluateBlindJudge(body);
+    else result = await queryBountyFeed(env, body);
   } catch (err) {
-    return xJson({ error: err.message || "Extraction failed" }, 422);
+    return xJson({ error: err.message || "Execution failed" }, 422);
   }
 
   const now = Date.now();

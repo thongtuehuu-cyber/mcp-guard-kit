@@ -200,6 +200,38 @@ async function feed(req, env, url) {
   return json({ events: result.results });
 }
 
+async function setBountyFeed(req, env) {
+  if (!env.COMMERCE_POLICY_TOKEN ||
+      !(await safeEqual(req.headers.get("authorization") || "", "Bearer " + env.COMMERCE_POLICY_TOKEN)))
+    return json({ error: "Unauthorized" }, 401);
+  if (!req.headers.get("content-type")?.startsWith("application/json")) return json({ error: "Invalid content-type" }, 400);
+  if (Number(req.headers.get("content-length")) > 65536) return json({ error: "Payload too large" }, 413);
+  const raw = await req.text();
+  if (raw.length > 65536) return json({ error: "Payload too large" }, 413);
+  let body;
+  try { body = JSON.parse(raw); } catch { return json({ error: "Invalid JSON" }, 400); }
+  if (!body || !Array.isArray(body.items) || body.items.length > 100) return json({ error: "Expected items array (<= 100)" }, 400);
+
+  const sanitized = body.items
+    .filter(x => x && typeof x === "object" && typeof x.url === "string" && x.url.startsWith("https://"))
+    .map(x => ({
+      title: String(x.title || "").slice(0, 140),
+      url: String(x.url || "").slice(0, 260),
+      source: String(x.source || "").slice(0, 40),
+      bounty_usd: Number(x.bounty_usd || 0) || 0,
+      open_prs: Number(x.open_prs ?? 0) || 0,
+      sniper_tier: String(x.sniper_tier || "").slice(0, 32),
+      skills: Array.isArray(x.skills) ? x.skills.slice(0, 8).map(s => String(s).slice(0, 32)) : [],
+      updated_at: String(x.updated_at || "").slice(0, 40),
+    }));
+  const now = Date.now();
+  await env.COMMERCE_DB.prepare(
+    `INSERT INTO x402_bounty_feed(id,payload_json,item_count,updated_at) VALUES(1,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET payload_json=excluded.payload_json, item_count=excluded.item_count, updated_at=excluded.updated_at`
+  ).bind(JSON.stringify(sanitized), sanitized.length, now).run();
+  return json({ ok: true, updated: sanitized.length, updated_at: now });
+}
+
 async function route(req, env, ctx) {
   const url = new URL(req.url);
   const origin = env.PUBLIC_ORIGIN || url.origin;
@@ -227,6 +259,7 @@ async function route(req, env, ctx) {
     return getFile(env, sig);
   }
   if (req.method === "POST" && url.pathname === "/api/funnel/policy") return setPolicy(req, env);
+  if (req.method === "POST" && url.pathname === "/api/funnel/bounty-feed") return setBountyFeed(req, env);
   if (req.method === "GET" && url.pathname === "/api/funnel/events") return feed(req, env, url);
   if (req.method === "POST" && url.pathname === "/api/helius-webhook") return webhook(req, env, origin, ctx);
   if (req.method === "POST" && ["/api/visit","/api/checkout","/api/status","/api/confirm","/api/usage"].includes(url.pathname)) {

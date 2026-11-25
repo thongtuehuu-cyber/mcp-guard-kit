@@ -46,7 +46,7 @@ function transaction(reference, amount = 3250000) {
 // D1 has SQLite semantics. Only the binding envelope is adapted here.
 function binding() {
   const sqlite = new DatabaseSync(":memory:");
-  for (const name of ["0001_commerce.sql", "0002_offer_policy.sql", "0003_pending_payments.sql", "0004_product_sku.sql", "0005_x402.sql"]) {
+  for (const name of ["0001_commerce.sql", "0002_offer_policy.sql", "0003_pending_payments.sql", "0004_product_sku.sql", "0005_x402.sql", "0006_x402_bounty_feed.sql"]) {
     sqlite.exec(readFileSync(new URL("../migrations/" + name, import.meta.url), "utf8"));
   }
   function prepare(sql, args = []) {
@@ -344,7 +344,7 @@ test("x402 pay-per-call gateway enforces 402, settles 0.05 USDC, rejects 409 rep
   assert.equal(discRes.headers.get("access-control-allow-origin"), "*");
   const disc = await discRes.json();
   assert.equal(disc.x402Version, 1);
-  assert.equal(disc.endpoints.length, 2);
+  assert.equal(disc.endpoints.length, 5);
 
   // 2. Unpaid call returns HTTP 402 + PAYMENT-REQUIRED header
   const auditBody = {
@@ -422,4 +422,100 @@ test("x402 pay-per-call gateway enforces 402, settles 0.05 USDC, rejects 409 rep
   const priceData = await priceRes.json();
   assert.equal(priceData.price_cents, 1900);
   assert.equal(priceData.price, 19);
+});
+
+test("x402 v2 endpoints: pr-critic (0.15 USDC), blind-judge (0.10 USDC), and bounty-feed (0.05 USDC)", async t => {
+  const { env, call } = setup(t);
+  env.COMMERCE_POLICY_TOKEN = "local-policy";
+  const localFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = localFetch; });
+
+  const postPaid = (path, payload, payHdr) => worker.fetch(new Request(origin + path, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-payment": payHdr },
+    body: JSON.stringify(payload),
+  }), env, { waitUntil() {} });
+
+  // 1. PR Critic (0.15 USDC = 150000 micros) catches .env + trivial assert True
+  const unpCritic = await call("/api/v1/x402/pr-critic", { diff: "diff --git a/a.py b/a.py\n+x=1" });
+  assert.equal(unpCritic.status, 402);
+  const criticHdr = JSON.parse(Buffer.from(unpCritic.headers.get("payment-required"), "base64").toString("utf8"));
+  assert.equal(criticHdr.accepts[0].maxAmountRequired, "150000");
+
+  const sigC = "1".repeat(63) + "a";
+  const refC = criticHdr.accepts[0].extra.reference;
+  const txC = transaction(refC, 150000);
+  txC.transaction.signatures[0] = sigC;
+  globalThis.fetch = async () => Response.json({ result: txC });
+
+  const badDiffRes = await postPaid("/api/v1/x402/pr-critic", {
+    diff: "diff --git a/.env b/.env\n+++ b/.env\n+TOKEN=1\ndiff --git a/test_a.py b/test_a.py\n+++ b/test_a.py\n+def test_x():\n+    assert True\n",
+    test_output: "1 FAILED in 0.1s",
+    claimed_pass: true,
+  }, JSON.stringify({ signature: sigC, reference: refC }));
+  assert.equal(badDiffRes.status, 200);
+  const badDiffJson = await badDiffRes.json();
+  assert.equal(badDiffJson.verdict, "BLOCK");
+  assert.ok(badDiffJson.blockers.includes("forbidden_file:.env"));
+  assert.ok(badDiffJson.blockers.includes("trivial_or_skipped_test_in_diff"));
+  assert.ok(badDiffJson.blockers.includes("test_output_contradicts_pass_claim"));
+
+  // 2. Blind Judge (0.10 USDC = 100000 micros) catches swap position bias & computes Elo
+  const unpJudge = await call("/api/v1/x402/blind-judge", { pass1: { winner: "B" }, pass2: { winner: "A" } });
+  assert.equal(unpJudge.status, 402);
+  const judgeHdr = JSON.parse(Buffer.from(unpJudge.headers.get("payment-required"), "base64").toString("utf8"));
+  assert.equal(judgeHdr.accepts[0].maxAmountRequired, "100000");
+
+  const sigJ = "1".repeat(63) + "b";
+  const refJ = judgeHdr.accepts[0].extra.reference;
+  const txJ = transaction(refJ, 100000);
+  txJ.transaction.signatures[0] = sigJ;
+  globalThis.fetch = async () => Response.json({ result: txJ });
+
+  const winJudgeRes = await postPaid("/api/v1/x402/blind-judge", {
+    pass1: { winner: "B", score_a: 75, score_b: 92 },
+    pass2: { winner: "A", score_a: 90, score_b: 76 },
+  }, JSON.stringify({ signature: sigJ, reference: refJ }));
+  assert.equal(winJudgeRes.status, 200);
+  const winJudge = await winJudgeRes.json();
+  assert.equal(winJudge.winner, "challenger");
+  assert.equal(winJudge.debiased_consistent, true);
+  assert.ok(winJudge.elo_delta > 0);
+
+  const sigJ2 = "1".repeat(63) + "c";
+  const refJ2 = newReference();
+  const txJ2 = transaction(refJ2, 100000);
+  txJ2.transaction.signatures[0] = sigJ2;
+  globalThis.fetch = async () => Response.json({ result: txJ2 });
+  const revJudgeRes = await postPaid("/api/v1/x402/blind-judge", {
+    pass1: { winner: "B", score_a: 80, score_b: 88 },
+    pass2: { winner: "B", score_a: 80, score_b: 88 },
+  }, JSON.stringify({ signature: sigJ2, reference: refJ2 }));
+  assert.equal(revJudgeRes.status, 200);
+  const revJudge = await revJudgeRes.json();
+  assert.equal(revJudge.winner, "tie");
+  assert.equal(revJudge.debiased_consistent, false);
+
+  // 3. Protected /api/funnel/bounty-feed push -> paid /api/v1/x402/bounty-feed (0.05 USDC)
+  const unauthFeed = await call("/api/funnel/bounty-feed", { items: [] });
+  assert.equal(unauthFeed.status, 401);
+  const pushRes = await call("/api/funnel/bounty-feed", {
+    items: [
+      { title: "Fix Algora bug", url: "https://github.com/org/repo/issues/1", source: "algora", bounty_usd: 250, open_prs: 0 },
+      { title: "Small issue", url: "https://github.com/org/repo/issues/2", source: "opire", bounty_usd: 20, open_prs: 0 },
+    ],
+  }, "Bearer local-policy");
+  assert.equal(pushRes.status, 200);
+  assert.equal((await pushRes.json()).updated, 2);
+
+  const sigF = "1".repeat(63) + "d";
+  const refF = newReference();
+  const txF = transaction(refF, 50000);
+  txF.transaction.signatures[0] = sigF;
+  globalThis.fetch = async () => Response.json({ result: txF });
+  const feedRes = await postPaid("/api/v1/x402/bounty-feed", { min_usd: 100, source: "algora" }, JSON.stringify({ signature: sigF, reference: refF }));
+  assert.equal(feedRes.status, 200);
+  const feedJson = await feedRes.json();
+  assert.equal(feedJson.count, 1);
+  assert.equal(feedJson.items[0].bounty_usd, 250);
 });

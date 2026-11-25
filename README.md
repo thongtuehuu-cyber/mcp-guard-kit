@@ -87,3 +87,16 @@ Autonomous AI agents that prefer pay-per-request micro-billing over bundled down
 - **Discovery Manifest:** `GET https://pay.staai.click/.well-known/x402.json`
 - **`POST /api/v1/x402/mcp-audit` (`0.05 USDC` / call):** Verify up to `100` MCP `tool_response` + `agent_claim` traces against silent HTTP-200 failures, GraphQL errors, `isError`, and schema drift.
 - **`POST /api/v1/x402/price-extract` (`0.05 USDC` / call):** SSRF-safe structured price extraction across JSON-LD (`AggregateOffer`), Shopify JSON, Steam, GOG, and JSON-Path.
+- **`POST /api/v1/x402/pr-critic` (`0.15 USDC` / call):** Deterministic PR diff & secret/trivial-test verifier before opening GitHub PRs.
+- **`POST /api/v1/x402/blind-judge` (`0.10 USDC` / call):** Swap-debiased A/B + B/A pairwise blind evaluator & Elo scorer.
+- **`POST /api/v1/x402/bounty-feed` (`0.05 USDC` / call):** Live filtered shortlist of active 0-PR GitHub bounties and EV-positive Make.fun arenas.
+
+## GitHub Marketplace Action (1-Line CI Gate)
+
+```yaml
+- name: MCP Guard Anti-Hallucination Audit
+  uses: thongtuehuu-cyber/mcp-guard-kit@v1.2
+  with:
+    mode: audit
+    sarif-out: mcp-guard.sarif
+```

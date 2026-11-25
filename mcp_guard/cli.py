@@ -9,7 +9,7 @@ import sys
 from typing import Sequence
 
 from .benchmark import run_empirical_benchmark
-from .runner import render_html_report, render_markdown_report, run_builtin_chaos_suite
+from .runner import render_html_report, render_markdown_report, render_sarif_report, run_builtin_chaos_suite
 from .verifier import ToolTrace, evaluate_suite
 
 
@@ -24,12 +24,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_demo.add_argument("--simulate-lying-agent", action="store_true", help="Simulate an LLM lying on 33% of tool failures")
     p_demo.add_argument("--md-out", type=Path, help="Write Markdown audit report to path")
     p_demo.add_argument("--html-out", type=Path, help="Write self-contained HTML audit report to path")
+    p_demo.add_argument("--sarif-out", type=Path, help="Write SARIF 2.1.0 Code Scanning report to path")
     p_demo.add_argument("--json", action="store_true", help="Print JSON summary to stdout")
 
     p_ver = sub.add_parser("verify", help="Verify recorded MCP tool traces JSON file")
     p_ver.add_argument("trace_file", type=Path, help="JSON list of {case_id, tool_name, fault_id, tool_response, agent_claim}")
     p_ver.add_argument("--md-out", type=Path, help="Write Markdown report")
     p_ver.add_argument("--html-out", type=Path, help="Write HTML report")
+    p_ver.add_argument("--sarif-out", type=Path, help="Write SARIF 2.1.0 Code Scanning report")
     p_ver.add_argument("--json", action="store_true", help="Print JSON summary")
 
     p_bench = sub.add_parser("benchmark", help="Run reproducible Naive HTTP-200 vs MCP Guard empirical benchmark")
@@ -68,6 +70,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.html_out:
         args.html_out.parent.mkdir(parents=True, exist_ok=True)
         args.html_out.write_text(render_html_report(summary), encoding="utf-8")
+    if getattr(args, "sarif_out", None):
+        args.sarif_out.parent.mkdir(parents=True, exist_ok=True)
+        args.sarif_out.write_text(json.dumps(render_sarif_report(summary), indent=2), encoding="utf-8")
 
     if args.json:
         print(json.dumps(summary.to_dict(), indent=2))

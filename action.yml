@@ -1,0 +1,96 @@
+name: "MCP Guard Anti-Hallucination & Chaos Audit"
+author: "thongtuehuu-cyber"
+description: "Zero-dependency CI gate & SARIF 2.1.0 scanner catching silent HTTP-200 MCP failures, GraphQL errors, and agent hallucinations."
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  mode:
+    description: "Run mode: 'audit' (built-in 10-case chaos suite) or 'verify' (check trace-file JSON)"
+    required: false
+    default: "audit"
+  trace-file:
+    description: "Path to recorded MCP tool_response + agent_claim trace JSON file (when mode=verify)"
+    required: false
+    default: ""
+  simulate-lying-agent:
+    description: "Set to 'true' to run a deliberate hallucination drill in audit mode"
+    required: false
+    default: "false"
+  sarif-out:
+    description: "Output path for SARIF 2.1.0 Code Scanning report"
+    required: false
+    default: "mcp-guard.sarif"
+  md-out:
+    description: "Output path for Markdown audit summary"
+    required: false
+    default: "mcp-guard-report.md"
+  fail-on-hallucination:
+    description: "Exit non-zero when hallucinations or false negatives are detected"
+    required: false
+    default: "true"
+
+outputs:
+  verdict:
+    description: "PASS or FAIL audit verdict"
+    value: ${{ steps.run_guard.outputs.verdict }}
+  hallucinations:
+    description: "Count of hallucinated successes detected"
+    value: ${{ steps.run_guard.outputs.hallucinations }}
+  sarif-path:
+    description: "Generated SARIF 2.1.0 report file path"
+    value: ${{ steps.run_guard.outputs.sarif_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run MCP Guard Kit Audit
+      id: run_guard
+      shell: bash
+      env:
+        MCP_GUARD_MODE: ${{ inputs.mode }}
+        MCP_GUARD_TRACE_FILE: ${{ inputs.trace-file }}
+        MCP_GUARD_SIM_LIE: ${{ inputs.simulate-lying-agent }}
+        MCP_GUARD_SARIF_OUT: ${{ inputs.sarif-out }}
+        MCP_GUARD_MD_OUT: ${{ inputs.md-out }}
+        MCP_GUARD_FAIL: ${{ inputs.fail-on-hallucination }}
+        MCP_GUARD_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        export PYTHONPATH="${MCP_GUARD_ACTION_PATH}${PYTHONPATH:+:${PYTHONPATH}}"
+        set +e
+        if [ "${MCP_GUARD_MODE}" = "verify" ] && [ -n "${MCP_GUARD_TRACE_FILE}" ]; then
+          JSON_OUT=$(python3 -m mcp_guard verify "${MCP_GUARD_TRACE_FILE}" --sarif-out "${MCP_GUARD_SARIF_OUT}" --md-out "${MCP_GUARD_MD_OUT}" --json)
+          RC=$?
+        else
+          EXTRA=""
+          if [ "${MCP_GUARD_SIM_LIE}" = "true" ]; then
+            EXTRA="--simulate-lying-agent"
+          fi
+          JSON_OUT=$(python3 -m mcp_guard audit ${EXTRA} --sarif-out "${MCP_GUARD_SARIF_OUT}" --md-out "${MCP_GUARD_MD_OUT}" --json)
+          RC=$?
+        fi
+        set -e
+
+        PARSED=$(python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); print(d.get("verdict","FAIL"), d.get("hallucinations",0))' <<< "${JSON_OUT}")
+        VERDICT=$(echo "${PARSED}" | awk '{print $1}')
+        HALLUCINATIONS=$(echo "${PARSED}" | awk '{print $2}')
+
+        {
+          echo "verdict=${VERDICT}"
+          echo "hallucinations=${HALLUCINATIONS}"
+          echo "sarif_path=${MCP_GUARD_SARIF_OUT}"
+        } >> "${GITHUB_OUTPUT}"
+
+        if [ -n "${GITHUB_STEP_SUMMARY:-}" ] && [ -f "${MCP_GUARD_MD_OUT}" ]; then
+          {
+            cat "${MCP_GUARD_MD_OUT}"
+            echo ""
+            echo "> **Upgrade to 30+ Chaos Scenarios, Live Stdio/HTTP Proxies & CI Policy Gates:** [Solo Pro v1.2 (19 USDC)](https://pay.staai.click/checkout?sku=solo) · [Team CI Pack (79 USDC)](https://pay.staai.click/checkout?sku=team) · [x402 Agent API (0.05 USDC/call)](https://pay.staai.click/.well-known/x402.json)"
+          } >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+        if [ "${MCP_GUARD_FAIL}" = "true" ] && [ "${RC}" -ne 0 ]; then
+          exit "${RC}"
+        fi

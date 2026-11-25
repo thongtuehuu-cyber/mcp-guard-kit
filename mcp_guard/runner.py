@@ -120,3 +120,62 @@ def render_html_report(summary: AuditSummary) -> str:
 </body>
 </html>
 """
+
+
+def render_sarif_report(summary: AuditSummary) -> dict[str, Any]:
+    """Render a SARIF 2.1.0 report suitable for GitHub Code Scanning uploads."""
+    results: list[dict[str, Any]] = []
+    for r in summary.results:
+        verdict = str(r.get("verdict") or "PASS")
+        if verdict == "PASS":
+            continue
+        is_hal = verdict == "FAIL_HALLUCINATION"
+        rule_id = "MCP001" if is_hal else "MCP002"
+        level = "error" if is_hal else "warning"
+        ev = ", ".join(r.get("reasons") or []) or verdict
+        results.append(
+            {
+                "ruleId": rule_id,
+                "level": level,
+                "message": {
+                    "text": f"[{verdict}] tool={r.get('tool_name')} fault={r.get('fault_id')} ({r.get('case_id')}): {ev}"
+                },
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": f"mcp-tools/{r.get('tool_name') or 'unknown'}"},
+                            "region": {"startLine": 1},
+                        }
+                    }
+                ],
+            }
+        )
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "mcp-guard-kit",
+                        "informationUri": "https://github.com/thongtuehuu-cyber/mcp-guard-kit",
+                        "rules": [
+                            {
+                                "id": "MCP001",
+                                "name": "HallucinatedToolSuccess",
+                                "shortDescription": {"text": "Agent claimed tool success despite underlying tool failure"},
+                                "defaultConfiguration": {"level": "error"},
+                            },
+                            {
+                                "id": "MCP002",
+                                "name": "FalseNegativeToolFailure",
+                                "shortDescription": {"text": "Agent reported tool failure when tool response succeeded"},
+                                "defaultConfiguration": {"level": "warning"},
+                            },
+                        ],
+                    }
+                },
+                "results": results,
+            }
+        ],
+    }
