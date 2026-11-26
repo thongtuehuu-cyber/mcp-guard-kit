@@ -331,9 +331,9 @@
       "url": "https://github.com/langchain-ai/langchain-mcp-adapters",
       "name": "LangChain MCP Adapters",
       "category": "Agent Framework",
-      "stars": 3637,
+      "stars": 0,
       "open_issues": 0,
-      "pushed_at": "2026-09-16T03:16:07Z",
+      "pushed_at": "",
       "passed_probes": 2,
       "total_probes": 6,
       "reliability_score": 33.3,
@@ -397,6 +397,79 @@
       "notes": "Structured tool adapter; requires downstream response verifier for soft 200 failures.",
       "pytest_repro": "def test_langchain_mcp_adapters_rejects_silent_200():\n    from mcp_guard.verifier import verify_tool_response\n    res = verify_tool_response({'status_code': 200, 'body': {'ok': False, 'error': 'upstream_rejected'}}, claim='Done')\n    assert res['hallucinated_success'] is True  # Caught by mcp-guard; missed by naive HTTP-200 checks",
       "outreach_angle": "Verified 4/6 silent-200/partial-batch gaps on langchain-ai/langchain-mcp-adapters (silent_error_200, graphql_errors_200, empty_payload_200). Reproducible 3-line pytest + drop-in CI guard ready.",
+      "fix_first_eligible": true
+    },
+    {
+      "repo": "n8n-io/n8n",
+      "url": "https://github.com/n8n-io/n8n",
+      "name": "n8n AI Agent & MCP Tool Nodes",
+      "category": "Workflow Automation",
+      "stars": 0,
+      "open_issues": 0,
+      "pushed_at": "",
+      "passed_probes": 2,
+      "total_probes": 6,
+      "reliability_score": 33.3,
+      "verdict": "SILENT_FAILURE_RISK",
+      "failed_faults": [
+        "silent_error_200",
+        "graphql_errors_200",
+        "empty_payload_200",
+        "partial_batch_207"
+      ],
+      "fault_results": [
+        {
+          "fault_id": "silent_error_200",
+          "label": "HTTP 200 Embedded Error",
+          "severity": "CRITICAL",
+          "target_caught": false,
+          "mcp_guard_caught": true,
+          "mcp_guard_reason": "embedded_false_flag"
+        },
+        {
+          "fault_id": "graphql_errors_200",
+          "label": "HTTP 200 GraphQL errors[]",
+          "severity": "HIGH",
+          "target_caught": false,
+          "mcp_guard_caught": true,
+          "mcp_guard_reason": "graphql_or_batch_errors_array"
+        },
+        {
+          "fault_id": "truncated_json_200",
+          "label": "Truncated JSON / EOF",
+          "severity": "HIGH",
+          "target_caught": true,
+          "mcp_guard_caught": true,
+          "mcp_guard_reason": "truncated_json"
+        },
+        {
+          "fault_id": "empty_payload_200",
+          "label": "Empty 200 / Zero Rows",
+          "severity": "MEDIUM",
+          "target_caught": false,
+          "mcp_guard_caught": true,
+          "mcp_guard_reason": "empty_rows_with_warning"
+        },
+        {
+          "fault_id": "partial_batch_207",
+          "label": "Partial Batch 207 Failure",
+          "severity": "HIGH",
+          "target_caught": false,
+          "mcp_guard_caught": true,
+          "mcp_guard_reason": "partial_batch_207"
+        },
+        {
+          "fault_id": "hard_500",
+          "label": "Explicit HTTP 500",
+          "severity": "LOW",
+          "target_caught": true,
+          "mcp_guard_caught": true,
+          "mcp_guard_reason": "http_500"
+        }
+      ],
+      "notes": "Popular self-hosted agent workflow runner; HTTP Request nodes pass 200 soft-errors unless guarded.",
+      "pytest_repro": "def test_n8n_rejects_silent_200():\n    from mcp_guard.verifier import verify_tool_response\n    res = verify_tool_response({'status_code': 200, 'body': {'ok': False, 'error': 'upstream_rejected'}}, claim='Done')\n    assert res['hallucinated_success'] is True  # Caught by mcp-guard; missed by naive HTTP-200 checks",
+      "outreach_angle": "Verified 4/6 silent-200/partial-batch gaps on n8n-io/n8n (silent_error_200, graphql_errors_200, empty_payload_200). Reproducible 3-line pytest + drop-in CI guard ready.",
       "fix_first_eligible": true
     },
     {

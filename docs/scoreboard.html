@@ -77,7 +77,7 @@
     </table>
 
     <h2>Reproducible 3-Line Pytest Gate</h2>
-    <pre><code>def test_n8n_rejects_silent_200():
+    <pre><code>def test_servers_rejects_silent_200():
     from mcp_guard.verifier import verify_tool_response
     res = verify_tool_response({&#x27;status_code&#x27;: 200, &#x27;body&#x27;: {&#x27;ok&#x27;: False, &#x27;error&#x27;: &#x27;upstream_rejected&#x27;}}, claim=&#x27;Done&#x27;)
     assert res[&#x27;hallucinated_success&#x27;] is True  # Caught by mcp-guard; missed by naive HTTP-200 checks</code></pre>
