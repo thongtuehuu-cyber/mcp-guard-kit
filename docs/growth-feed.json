@@ -1,0 +1,89 @@
+{
+  "ok": true,
+  "generated_at": "2026-11-26T12:20:27.945582+00:00",
+  "source_batch_at": "2026-11-25T14:49:41.763256+00:00",
+  "ready_count": 10,
+  "blocked_count": 0,
+  "items": [
+    {
+      "slot": 1,
+      "bucket": "pain_0_link",
+      "channel": "github_pages_feed",
+      "title": "Tại sao AI Agent báo 'Thành công' dù API vừa trả lỗi?",
+      "body": "Trong 7 MCP server phổ biến vừa kiểm thử, 6 server vẫn để lọt phản hồi HTTP 200 chứa trường `error` hoặc `ok: false`. LLM chỉ nhìn status 200 nên tự tin báo xong việc với khách. Cách chặn tận gốc: kiểm tra schema payload trước khi cho agent kết luận.",
+      "compliance_passed": true
+    },
+    {
+      "slot": 2,
+      "bucket": "pain_0_link",
+      "channel": "github_pages_feed",
+      "title": "Bài học đau thương khi thả AI Agent vào kèo 11,652 đối thủ",
+      "body": "Đạt Top 3.3% (#385/11,652) nhưng thưởng chia ra chỉ còn $0.096. Lỗi không nằm ở mô hình AI yếu, mà ở bài toán tỷ trọng đơn hàng: đông người làm loãng EV. Hãy luôn khóa bộ lọc trần đối thủ <= 400 và ưu tiên bài chấm tự động xác định.",
+      "compliance_passed": true
+    },
+    {
+      "slot": 3,
+      "bucket": "pain_0_link",
+      "channel": "github_pages_feed",
+      "title": "3 dấu hiệu nhận biết một chiến lược Quant Backtest đang Overfit nặng",
+      "body": "Khi đưa các kịch bản phổ biến qua Tòa án 4 cổng toán học (Walk-Forward, Plateau, Bar Permutation, 2× phí), 3 mẫu nhiễu bị lật tẩy ngay dù backtest đẹp. Đừng bao giờ tin Sharpe trong mẫu khi chưa đảo thứ tự nến OHLC và tối ưu lại lưới tham số.",
+      "compliance_passed": true
+    },
+    {
+      "slot": 4,
+      "bucket": "pain_0_link",
+      "channel": "github_pages_feed",
+      "title": "Anti-Regress Commit Pin: vì sao vòng tối ưu thứ 5 hay làm tụt điểm vòng 4",
+      "body": "Khi cho AI tự sửa code lặp lại trên bài tối ưu tốc độ hoặc size 4KB, mô hình thường đánh đổi độ chính xác để rút gọn dòng. Luôn ghim commit điểm cao nhất vào file state và tự động bác bỏ mọi bản vá làm tụt điểm benchmark cục bộ.",
+      "compliance_passed": true
+    },
+    {
+      "slot": 5,
+      "bucket": "pain_0_link",
+      "channel": "github_pages_feed",
+      "title": "Chi phí ẩn của việc kéo 10,000 lượt xem cho sản phẩm giá $5",
+      "body": "Muốn đạt $1,000/tháng với sản phẩm $5 cần 200 đơn — tương đương hàng trăm nghìn lượt hiển thị mỗi tháng. Chuyển sang 1 cửa thoát $50–$250 giúp giảm 10×–50× áp lực traffic mà nội dung vẫn gọn, không cần spam link.",
+      "compliance_passed": true
+    },
+    {
+      "slot": 6,
+      "bucket": "pain_0_link",
+      "channel": "github_pages_feed",
+      "title": "Checklist 4 lỗi khiến PR / bài nộp AI Bounty bị loại ngay vòng gửi xe",
+      "body": "1) Dính file `.env` hoặc token mẫu; 2) Vượt giới hạn dung lượng bundle; 3) Chèn `assert True` / `pytest.skip`; 4) Nhúng CDN ngoài trong bài thi offline. Chạy 1 script preflight 0.2 giây trước khi submit cứu 90% công sức.",
+      "compliance_passed": true
+    },
+    {
+      "slot": 7,
+      "bucket": "comparison_matrix",
+      "channel": "github_pages_feed",
+      "title": "So sánh 3 công cụ tự động hóa Agent: n8n Self-Host vs Make.com vs Zapier",
+      "body": "| Tiêu chí | n8n (Self-host) | Make.com | Zapier |\n|---|---|---|---|\n| Kiểm soát lỗi HTTP-200 | Cần node IF thủ công | Có Error Handler trực quan | Giới hạn theo gói [CẦN XÁC MINH] |\n| Chi phí chạy 50k ops/tháng | Chi phí VPS (~$10–$20) | [CẦN XÁC MINH bảng giá mới nhất] | [CẦN XÁC MINH bảng giá mới nhất] |\n| Phù hợp nhất | Kỹ sư tự vận hành | Team vận hành nhanh | Kết nối SaaS đơn giản |",
+      "compliance_passed": true
+    },
+    {
+      "slot": 8,
+      "bucket": "comparison_matrix",
+      "channel": "github_pages_feed",
+      "title": "So sánh kèo AI Bounty: Đấu trường đông (>10k người) vs Sniper Xác định (<=400 người)",
+      "body": "| Tiêu chí | Arena chủ quan (>10,000 bài) | Sniper chấm code tự động (<=400 bài) |\n|---|---|---|\n| Tiêu chí chấm | AI Judge chủ quan | Test suite / Benchmark xác định |\n| Mật độ quỹ / bài nộp | Rất thấp (~$0.01–$0.15) | Cao ($0.50–$5.00+) |\n| Khả năng lặp cải thiện | Khó dự đoán | Đo được từng điểm bằng Local Grader |",
+      "compliance_passed": true
+    },
+    {
+      "slot": 9,
+      "bucket": "comparison_matrix",
+      "channel": "github_pages_feed",
+      "title": "So sánh cách kiểm chứng MCP Tool Call: Naive HTTP-200 vs MCP Guard Local CI",
+      "body": "| Tình huống lỗi | Wrapper HTTP-200 thường | MCP Guard Verifier |\n|---|---|---|\n| HTTP 200 + `{\"error\": ...}` | Bỏ lọt (Báo thành công) | Chặn 100% |\n| GraphQL 200 `errors[]` | Bỏ lọt | Chặn 100% |\n| Truncated JSON / Partial 207 | Bỏ lọt | Chặn 100% |\n| Chi phí API đám mây | Không áp dụng | $0 (chạy cục bộ 100%) |",
+      "compliance_passed": true
+    },
+    {
+      "slot": 10,
+      "bucket": "high_ticket_exit",
+      "channel": "github_pages_feed",
+      "title": "Cửa thoát High-Ticket: Make.fun Coding Arena Referral (10% Bonus 90d)",
+      "body": "Nếu bạn muốn biến AI coding agent thành công cụ giải bounty xác định thay vì chạy thử nghiệm vô định, hãy dùng bộ **Make.fun Agent Starter Kit** (Sniper Filter <=400 đối thủ + Anti-Regress Pin + Preflight Gate) và bắt đầu tại: https://make.fun/r/p1eh1d2g\n\n[Referral Disclosure] Official Make.fun onboarding link — Make.fun pays a 10% bonus on top at $0 extra cost.",
+      "compliance_passed": true
+    }
+  ]
+}
