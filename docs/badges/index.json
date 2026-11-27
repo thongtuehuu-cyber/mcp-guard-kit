@@ -1,18 +1,17 @@
 {
-  "generated_at": "2026-11-27T02:20:06.895693+00:00",
+  "generated_at": "2026-11-27T06:25:41.440120+00:00",
   "base_url": "https://thongtuehuu-cyber.github.io/mcp-guard-kit/badges",
   "badges": [
-    "apify-apify-mcp-server.svg",
-    "cursortouch-windows-mcp.svg",
-    "enderfga-claw-orchestrator.svg",
     "github-github-mcp-server.svg",
+    "itechmeat-open-second-brain.svg",
     "kajisho5-ffmpeg-skill.svg",
     "langchain-ai-langchain-mcp-adapters.svg",
+    "marianfoo-sap-ai-mcp-servers.svg",
     "mcp-guard-scoreboard.svg",
+    "mcpjam-inspector.svg",
     "modelcontextprotocol-servers.svg",
     "n8n-io-n8n.svg",
     "punkpeye-awesome-mcp-servers.svg",
-    "samanhappy-mcphub.svg",
     "supabase-community-supabase-mcp.svg",
     "thongtuehuu-cyber-mcp-guard-kit.svg",
     "zhouxiaoka-autoclip.svg"
